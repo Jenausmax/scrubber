@@ -1,0 +1,75 @@
+# Project State
+
+## Project Reference
+
+See: .planning/PROJECT.md (updated 2026-05-27)
+
+**Core value:** Превратить mp4-видео в качественный текстовый транскрипт (`.md`) — это обязано работать, даже если всё остальное отвалится.
+**Current focus:** Phase 1 — Foundation & App Shell
+
+## Current Position
+
+Phase: 1 of 5 (Foundation & App Shell)
+Plan: 0 of TBD in current phase
+Status: Ready to plan
+Last activity: 2026-05-27 — Roadmap created (5 phases, 23/23 requirements mapped)
+
+Progress: [░░░░░░░░░░] 0%
+
+## Performance Metrics
+
+**Velocity:**
+- Total plans completed: 0
+- Average duration: — min
+- Total execution time: 0.0 hours
+
+**By Phase:**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| - | - | - | - |
+
+**Recent Trend:**
+- Last 5 plans: —
+- Trend: —
+
+*Updated after each plan completion*
+
+## Accumulated Context
+
+### Decisions
+
+Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
+
+- [Roadmap]: Cloud-транскрипция и пресеты Claude/Gemini отложены в v2 — v1 не содержит этих фаз
+- [Roadmap]: Дистрибуция кросс-сквозная — packaged-build smoke-тест начинается с Phase 2, нотаризация macOS финализируется в Phase 5
+- [Research]: whisper.cpp как sidecar-бинарник (не native addon, не Python); провайдеры за интерфейсами Strategy+Registry
+
+### Pending Todos
+
+None yet.
+
+### Blockers/Concerns
+
+[Issues that affect future work]
+
+- [Phase 1]: Linux keyring detection (`getSelectedStorageBackend()` + warning UI) — заложить уже здесь
+- [Phase 2]: Pitfall #1 — бинарники внутри asar не запускаются; обязателен smoke-тест упакованной сборки
+- [Phase 3]: VAD-параметры whisper.cpp для русского и on-demand download large-v3 (~3 ГБ) — нужен углублённый ресёрч
+- [Phase 4]: Стратегия overflow длинного транскрипта (chunking vs truncate) не зафиксирована — решить при планировании
+- [Phase 5]: macOS-нотаризация со всеми вложенными бинарниками — длинный хвост, нужен реальный macOS CI-раннер
+
+## Deferred Items
+
+Items acknowledged and carried forward from previous milestone close:
+
+| Category | Item | Status | Deferred At |
+|----------|------|--------|-------------|
+| *(none)* | | | |
+
+## Session Continuity
+
+Last session: 2026-05-27 22:54
+Stopped at: ROADMAP.md и STATE.md созданы, REQUIREMENTS.md traceability обновлён
+Resume file: None

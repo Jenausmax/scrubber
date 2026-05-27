@@ -86,13 +86,35 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (заполняется роадмаппером) | | Pending |
+| SHELL-01 | Phase 1 | Pending |
+| SHELL-02 | Phase 1 | Pending |
+| SHELL-03 | Phase 1 | Pending |
+| MEDIA-01 | Phase 2 | Pending |
+| MEDIA-02 | Phase 2 | Pending |
+| MEDIA-03 | Phase 2 | Pending |
+| MEDIA-04 | Phase 2 | Pending |
+| TRANS-01 | Phase 3 | Pending |
+| TRANS-02 | Phase 3 | Pending |
+| TRANS-03 | Phase 3 | Pending |
+| TRANS-04 | Phase 3 | Pending |
+| TRANS-05 | Phase 3 | Pending |
+| TRANS-06 | Phase 3 | Pending |
+| TRANS-07 | Phase 3 | Pending |
+| ANLZ-01 | Phase 4 | Pending |
+| ANLZ-02 | Phase 4 | Pending |
+| ANLZ-03 | Phase 4 | Pending |
+| ANLZ-04 | Phase 4 | Pending |
+| ANLZ-05 | Phase 4 | Pending |
+| ANLZ-06 | Phase 4 | Pending |
+| DIST-01 | Phase 5 | Pending |
+| DIST-02 | Phase 5 | Pending |
+| DIST-03 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 23 total
-- Mapped to phases: 0 (роадмаппер заполнит)
-- Unmapped: 23 ⚠️
+- Mapped to phases: 23 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-05-27*
-*Last updated: 2026-05-27 after initial definition*
+*Last updated: 2026-05-27 after roadmap creation*
