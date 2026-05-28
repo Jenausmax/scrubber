@@ -84,6 +84,12 @@ vi.mock('electron', () => {
     contextBridge: {
       exposeInMainWorld: vi.fn()
     },
+    ipcRenderer: {
+      invoke: vi.fn().mockResolvedValue({ ok: true }),
+      on: vi.fn(),
+      removeListener: vi.fn(),
+      send: vi.fn()
+    },
     shell: {
       openExternal: vi.fn().mockResolvedValue(undefined)
     },
