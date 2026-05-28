@@ -933,13 +933,14 @@ Fallback (memory-only) уже в скоупе фазы (D-07).
 | A4 | `process.platform === 'linux'` → нужен gnome-keyring/kwallet. Если в дистре только seahorse без keyring-daemon, поведение точно как описано | Pitfall 4 / D-07 | Возможен edge-case с пустым keyring API но present daemon — backend вернётся `basic_text` и memory-fallback сработает. Безопасный fallback покрывает риск. `[ASSUMED]`. |
 | A5 | `package.json` `"type": "module"` в шаблоне `react-ts` не выставлен | Pitfall 3 | Не подтверждено через прямое чтение JSON (WebFetch упал на playground/react-ts/package.json). Если уже `module` — подводный камень не возникает. **Verify-task в плане:** `cat package.json | grep '"type"'` сразу после генерации. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Шаблон ставит electron 39 — насколько безболезненно обновить до 42?**
    - Что мы знаем: `npm install --save-exact electron@42.3.0` обновит пакет.
    - Что неясно: возможны ли регрессии в `@electron-toolkit/*` версиях, привязанных к 39.
    - Рекомендация: первый task — bump + `npm run typecheck` + `npm run dev`; если
      `@electron-toolkit/*` ругаются — обновить и их (последние версии в registry).
+   - **RESOLVED:** заложено в Plan 01-01 Task 1 (явный bump до electron@42.3.0 + typecheck + dev-smoke; обновление `@electron-toolkit/*` при необходимости).
 
 2. **CI matrix на 3 ОС в Phase 1 или отложить?**
    - Что мы знаем: GitHub Actions имеет `windows-latest`, `macos-latest`, `ubuntu-latest`.
@@ -947,17 +948,20 @@ Fallback (memory-only) уже в скоупе фазы (D-07).
    - Рекомендация: минимальный CI — typecheck + `electron-vite build` на одной ОС
      (`ubuntu-latest`). Кросс-платформенный билд через electron-builder отложить в Phase 5.
      В Phase 1 — ручной smoke на трёх ОС перед закрытием фазы.
+   - **RESOLVED:** в Phase 1 CI matrix НЕ вводится. Cross-OS покрытие — ручной smoke через checkpoint в Plan 01-04 Task 3. CI matrix отложена в Phase 5 (packaging & distribution).
 
 3. **Window state persistence — в Phase 1 или нет?**
    - CONTEXT.md (Deferred) разрешает оба варианта.
    - Рекомендация: **отложить.** `electron-store` уже будет настроен, добавить
      `{ width, height, x, y }` тривиально в любой следующей фазе.
+   - **RESOLVED:** отложено. В планах Phase 1 не реализуется; добавим тривиально в одной из следующих фаз (electron-store уже настроен в 01-02).
 
 4. **Playwright Electron для E2E SHELL-02 («ключ переживает рестарт»)?**
    - Что мы знаем: Playwright поддерживает Electron через `_electron.launch()`.
    - Что неясно: время на настройку vs ценность.
    - Рекомендация: для Phase 1 достаточно unit + integration с моком `electron`-модуля
      (Vitest умеет, см. Wave 0). Playwright — кандидат в Phase 5 при настройке CI.
+   - **RESOLVED:** в Phase 1 Playwright НЕ добавляется. Покрытие SHELL-02 — unit (01-02 T2) + integration (01-03 T2 secrets-persist round-trip с tmpdir). Playwright рассматривается в Phase 5.
 
 ## State of the Art
 
