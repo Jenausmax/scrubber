@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/* Базовый reset поверх Tailwind preflight — окно Electron растягиваем на весь viewport. */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  color: #111827; /* gray-900 */
+  background: #f9fafb; /* gray-50 */
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
