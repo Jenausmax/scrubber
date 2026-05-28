@@ -30,9 +30,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. API-ключ, введённый пользователем, сохраняется в системном защищённом хранилище (safeStorage), а не в plaintext, и читается при перезапуске
   3. Если защищённое хранилище недоступно (например, Linux без keyring), пользователь видит понятное предупреждение вместо тихого сбоя
   4. Renderer изолирован (contextIsolation/sandbox), все секреты и IPC проходят через allow-list preload-мост
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 Plans:
-- [ ] 01-01-PLAN.md — Scaffold react-ts + Vitest mock infra (Wave 1)
+- [x] 01-01-PLAN.md — Scaffold react-ts + Vitest mock infra (Wave 1)
 - [ ] 01-02-PLAN.md — Shared IPC contract + main services (secure-backend, secrets-store, IPC handlers, bootstrap) (Wave 2)
 - [ ] 01-03-PLAN.md — Preload bridge + secrets persist integration test (Wave 3)
 - [ ] 01-04-PLAN.md — Renderer App shell + Settings + BackendWarningBanner + manual cross-OS smoke (Wave 4)
@@ -96,7 +96,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & App Shell | 0/4 | Not started | - |
+| 1. Foundation & App Shell | 1/4 | In Progress|  |
 | 2. Media Extraction Pipeline | 0/TBD | Not started | - |
 | 3. Local Transcription (Core Value) | 0/TBD | Not started | - |
 | 4. LLM Analysis & Prompt Library | 0/TBD | Not started | - |
