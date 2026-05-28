@@ -1,0 +1,10 @@
+node_modules
+dist
+out
+.DS_Store
+.eslintcache
+*.log*
+
+# Электронные артефакты / секреты на всякий случай (userData снаружи репо, но мера предосторожности)
+*.bin
+secrets.bin
