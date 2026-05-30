@@ -17,10 +17,16 @@ export default defineConfig({
     }
   },
   preload: {
+    // sandbox: true несовместим с ESM preload (Pitfall #9, 01-RESEARCH.md):
+    // sandboxed preload грузится как чистый CJS bundle и не поддерживает import/export.
+    // Поэтому preload собирается как CommonJS, в отличие от main (которому нужен ESM
+    // ради electron-store@11). Расширение .cjs — package.json имеет "type": "module",
+    // иначе Node трактует .js как ESM.
     build: {
       rollupOptions: {
         output: {
-          format: 'es'
+          format: 'cjs',
+          entryFileNames: '[name].cjs'
         }
       }
     }
