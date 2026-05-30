@@ -1,7 +1,8 @@
 ---
 phase: 2
 slug: media-extraction-pipeline
-status: draft
+status: approved
+reviewed_at: 2026-05-31
 shadcn_initialized: false
 preset: none
 created: 2026-05-31
@@ -251,11 +252,11 @@ Light-only палитра, унаследована из `styles.css` и Tailwin
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS (русский, конкретные глаголы, все error-reason'ы покрыты)
-- [ ] Dimension 2 Visuals: PASS (одна радиус-шкала, один паттерн карточек, один паттерн кнопок)
-- [ ] Dimension 3 Color: PASS (60/30/10 с явным списком accent-зон; destructive отдельным красным)
-- [ ] Dimension 4 Typography: PASS (4 размера, 2 веса, унаследовано из Phase 1)
-- [ ] Dimension 5 Spacing: PASS (multiples of 4, мапится 1-в-1 на Tailwind utilities)
-- [ ] Dimension 6 Registry Safety: PASS (не применимо — нет third-party реестров)
+- [x] Dimension 1 Copywriting: PASS (русский, конкретные глаголы, все error-reason'ы покрыты)
+- [x] Dimension 2 Visuals: PASS (одна радиус-шкала, один паттерн карточек, один паттерн кнопок)
+- [x] Dimension 3 Color: PASS (60/30/10 с явным списком accent-зон; destructive отдельным красным)
+- [x] Dimension 4 Typography: PASS (4 размера, 2 веса, унаследовано из Phase 1)
+- [x] Dimension 5 Spacing: PASS (multiples of 4, мапится 1-в-1 на Tailwind utilities)
+- [x] Dimension 6 Registry Safety: PASS (не применимо — нет third-party реестров)
 
-**Approval:** pending
+**Approval:** approved 2026-05-31
