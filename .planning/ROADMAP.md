@@ -12,7 +12,7 @@ scrubber превращает mp4-видео в анализируемый те�
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation & App Shell** - Безопасный Electron-каркас, IPC-контракт, safeStorage, базовый UI на трёх ОС
+- [x] **Phase 1: Foundation & App Shell** - Безопасный Electron-каркас, IPC-контракт, safeStorage, базовый UI на трёх ОС (completed 2026-05-30)
 - [ ] **Phase 2: Media Extraction Pipeline** - Выбор/drag&drop mp4 и извлечение аудио через ffmpeg в упакованной сборке
 - [ ] **Phase 3: Local Transcription (Core Value)** - Офлайн mp4 → transcript.md через whisper.cpp с прогрессом и Cancel
 - [ ] **Phase 4: LLM Analysis & Prompt Library** - Конфигурируемый LLM, библиотека промптов, анализ транскрипта → analysis.md
@@ -30,12 +30,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. API-ключ, введённый пользователем, сохраняется в системном защищённом хранилище (safeStorage), а не в plaintext, и читается при перезапуске
   3. Если защищённое хранилище недоступно (например, Linux без keyring), пользователь видит понятное предупреждение вместо тихого сбоя
   4. Renderer изолирован (contextIsolation/sandbox), все секреты и IPC проходят через allow-list preload-мост
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 Plans:
 - [x] 01-01-PLAN.md — Scaffold react-ts + Vitest mock infra (Wave 1)
 - [x] 01-02-PLAN.md — Shared IPC contract + main services (secure-backend, secrets-store, IPC handlers, bootstrap) (Wave 2)
 - [x] 01-03-PLAN.md — Preload bridge + secrets persist integration test (Wave 3)
-- [ ] 01-04-PLAN.md — Renderer App shell + Settings + BackendWarningBanner + manual cross-OS smoke (Wave 4)
+- [x] 01-04-PLAN.md — Renderer App shell + Settings + BackendWarningBanner + manual cross-OS smoke (Wave 4)
 
 ### Phase 2: Media Extraction Pipeline
 **Goal**: Пользователь может подать mp4 в приложение и получить извлечённую аудиодорожку через ffmpeg, работающий в utilityProcess — включая упакованную сборку (доказан паттерн asarUnpack для нативных бинарников).
@@ -96,7 +96,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & App Shell | 3/4 | In Progress|  |
+| 1. Foundation & App Shell | 4/4 | Complete   | 2026-05-30 |
 | 2. Media Extraction Pipeline | 0/TBD | Not started | - |
 | 3. Local Transcription (Core Value) | 0/TBD | Not started | - |
 | 4. LLM Analysis & Prompt Library | 0/TBD | Not started | - |
