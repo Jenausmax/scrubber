@@ -47,7 +47,12 @@ Plans:
   2. Пользователь может перетащить mp4-файл в окно приложения (drag&drop)
   3. Приложение извлекает аудиодорожку из выбранного mp4 через ffmpeg без зависания UI
   4. Извлечение аудио работает в **упакованной сборке** на всех трёх ОС (ffmpeg-бинарник доступен из прода через asarUnpack/extraResources)
-**Plans**: TBD
+**Plans:** 4 plans
+Plans:
+- [ ] 02-01-PLAN.md — IPC media контракт + CJS utility entry + asarUnpack build-инфра (Wave 1)
+- [ ] 02-02-PLAN.md — Backend: ffmpeg-paths, progress-parser, media-extractor singleton, utility-runner, IPC handlers (Wave 2)
+- [ ] 02-03-PLAN.md — Renderer слайс: 5 компонентов + Transcribe FSM + RTL-тесты (Wave 3)
+- [ ] 02-04-PLAN.md — Integration test (реальный ffmpeg) + packaged smoke Windows + VERIFICATION.md (Wave 4)
 **UI hint**: yes
 
 ### Phase 3: Local Transcription (Core Value)
@@ -97,7 +102,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & App Shell | 4/4 | Complete   | 2026-05-30 |
-| 2. Media Extraction Pipeline | 0/TBD | Not started | - |
+| 2. Media Extraction Pipeline | 0/4 | Not started | - |
 | 3. Local Transcription (Core Value) | 0/TBD | Not started | - |
 | 4. LLM Analysis & Prompt Library | 0/TBD | Not started | - |
 | 5. Distribution & Cross-Platform | 0/TBD | Not started | - |
