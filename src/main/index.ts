@@ -15,6 +15,7 @@ import { createWindow } from './window'
 import { secureBackend } from './services/secure-backend'
 import { secretsStore } from './services/secrets-store'
 import { settingsStore } from './services/settings-store'
+import { mediaExtractor } from './services/media-extractor'
 import { registerIpcHandlers } from './ipc'
 
 app
@@ -38,7 +39,17 @@ app
     // 4. IPC handlers — до открытия окна
     registerIpcHandlers()
 
-    // 5. Окно
+    // 5. Media extractor init — chmod ffmpeg/ffprobe (D-18, Pitfall #2) + mkdir extracted/.
+    //    После registerIpcHandlers, ДО createWindow — окно может сразу дёрнуть media:probe.
+    try {
+      await mediaExtractor.init()
+    } catch (err: unknown) {
+      // eslint-disable-next-line no-console
+      console.error('[main] mediaExtractor.init failed:', err)
+      // Не падаем целиком — settings/secrets уже работают; ffmpeg-handler вернёт reason при первом invoke.
+    }
+
+    // 6. Окно
     createWindow()
 
     app.on('activate', () => {
