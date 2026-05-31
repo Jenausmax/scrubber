@@ -6,8 +6,23 @@ import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
 import * as os from 'node:os'
 
-const USER_DATA = join(os.tmpdir(), 'scrubber-test', 'userData')
+// Уникальный per-file user-data dir чтобы избежать конкуренции с другими test-файлами
+// (vitest по дефолту параллельный).
+const USER_DATA = join(os.tmpdir(), 'scrubber-test-media-extractor', 'userData')
 const EXTRACTED = join(USER_DATA, 'extracted')
+
+// Override electron.app.getPath('userData') чтобы media-extractor использовал isolated dir.
+// Делается в beforeEach — global mock из tests/setup.ts заводит app.getPath = vi.fn,
+// его mockImplementation можно подменить, не разрушая остальные поля electron.
+async function overrideUserDataPath(): Promise<void> {
+  const electron = await import('electron')
+  ;(electron.app.getPath as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+    (name: string) => {
+      if (name === 'userData') return USER_DATA
+      return join(os.tmpdir(), 'scrubber-test', name)
+    }
+  )
+}
 
 // Stub ffmpeg-paths — статичные пути, без реальной zoom-resolve логики.
 vi.mock('./ffmpeg-paths', () => ({
@@ -41,6 +56,7 @@ let realInputPath: string
 beforeEach(async () => {
   await fs.rm(USER_DATA, { recursive: true, force: true })
   vi.resetModules()
+  await overrideUserDataPath()
   // Cоздать input-файл для startExtract (нужен fs.stat).
   const inputDir = join(os.tmpdir(), 'scrubber-test', 'input')
   await fs.mkdir(inputDir, { recursive: true })
