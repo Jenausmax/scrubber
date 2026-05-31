@@ -9,6 +9,9 @@ export default defineConfig({
     globals: false,
     setupFiles: ['./tests/setup.ts'],
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'tests/**/*.test.ts'],
+    // 60s — integration-тесты (tests/integration/extract-real.test.ts) реально
+    // спавнят ffmpeg/ffprobe на 5-сек fixture (Phase 2 Plan 04 Task 1).
+    testTimeout: 60000,
     reporters: ['default']
   },
   resolve: {
