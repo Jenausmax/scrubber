@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 2 context gathered
-last_updated: "2026-05-31T17:50:06.829Z"
-last_activity: 2026-05-31 -- Phase 02 planning complete
+last_updated: "2026-05-31T19:30:18.878Z"
+last_activity: 2026-05-31 -- Phase 2 execution started
 progress:
   total_phases: 5
   completed_phases: 1
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-27)
 
 **Core value:** Превратить mp4-видео в качественный текстовый транскрипт (`.md`) — это обязано работать, даже если всё остальное отвалится.
-**Current focus:** Phase 01 — foundation-app-shell
+**Current focus:** Phase 2 — media-extraction-pipeline
 
 ## Current Position
 
-Phase: 01 (foundation-app-shell) — EXECUTING
+Phase: 2 (media-extraction-pipeline) — EXECUTING
 Plan: 1 of 4
-Status: Ready to execute
-Last activity: 2026-05-31 -- Phase 02 planning complete
+Status: Executing Phase 2
+Last activity: 2026-05-31 -- Phase 2 execution started
 
 Progress: [░░░░░░░░░░] 0%
 

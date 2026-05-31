@@ -55,11 +55,11 @@ Plans:
   3. Приложение извлекает аудиодорожку из выбранного mp4 через ffmpeg без зависания UI
   4. Извлечение аудио работает в **упакованной сборке** на всех трёх ОС (ffmpeg-бинарник доступен из прода через asarUnpack/extraResources)
 
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — IPC media контракт + CJS utility entry + asarUnpack build-инфра (Wave 1)
+- [x] 02-01-PLAN.md — IPC media контракт + CJS utility entry + asarUnpack build-инфра (Wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -131,7 +131,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & App Shell | 4/4 | Complete   | 2026-05-30 |
-| 2. Media Extraction Pipeline | 0/4 | Not started | - |
+| 2. Media Extraction Pipeline | 1/4 | In Progress|  |
 | 3. Local Transcription (Core Value) | 0/TBD | Not started | - |
 | 4. LLM Analysis & Prompt Library | 0/TBD | Not started | - |
 | 5. Distribution & Cross-Platform | 0/TBD | Not started | - |
