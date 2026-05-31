@@ -771,7 +771,7 @@ media: {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Где хранить utility-script: `src/main/ffmpeg-runner.ts` (рядом с index) или `src/main/utilities/ffmpeg-runner.ts`?**
    - Что известно: electron-vite собирает по `lib.entry` / `rollupOptions.input`. Текущий конфиг имеет только дефолтный `main` entry.
