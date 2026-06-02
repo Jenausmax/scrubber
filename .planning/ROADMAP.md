@@ -55,7 +55,7 @@ Plans:
   3. Приложение извлекает аудиодорожку из выбранного mp4 через ffmpeg без зависания UI
   4. Извлечение аудио работает в **упакованной сборке** на всех трёх ОС (ffmpeg-бинарник доступен из прода через asarUnpack/extraResources)
 
-**Plans:** 3/4 plans executed
+**Plans:** 5 plans (4 baseline + 1 gap-closure; 3/5 executed)
 Plans:
 **Wave 1**
 
@@ -72,6 +72,10 @@ Plans:
 **Wave 4** *(blocked on Wave 3 completion)*
 
 - [ ] 02-04-PLAN.md — Integration test (реальный ffmpeg) + packaged smoke Windows + VERIFICATION.md (Wave 4)
+
+**Gap closure** *(human smoke выявил 3 gap'a — см. 02-VERIFICATION.md)*
+
+- [ ] 02-05-PLAN.md — Gap-closure: webUtils.getPathForFile (Gap 1) + assertBinaryExists + smoke-packaged.mjs (Gap 2) + uniqueness REASON_COPY (Gap 3)
 
 **UI hint**: yes
 
