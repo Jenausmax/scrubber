@@ -46,6 +46,9 @@ interface JobHandle {
   proc: Electron.UtilityProcess
   outPath: string
   cancelled: boolean
+  // 02-05 diagnostic: stderr-хвост из ffmpeg-runner (msg type='done'),
+  // чтобы при exit code != 0 логировать причину, а не глотать её.
+  stderrTail: string
 }
 
 /**
@@ -195,6 +198,14 @@ export class MediaExtractor {
       serviceName: 'scrubber-ffmpeg',
       stdio: 'pipe'
     })
+    // 02-05 diagnostic: лог входов в worker — нужен для отладки packaged build
+    // (unicode пути, неожиданный ffmpegPath после .replace('app.asar','app.asar.unpacked'),
+    // tmpPath без прав на запись). При exit != 0 без этого лога невозможно понять
+    // root cause, потому что stderr ffmpeg'a живёт только внутри worker'а.
+    // eslint-disable-next-line no-console
+    console.error(
+      `${LOG_PREFIX} fork ffmpeg-runner jobId=${jobId} ffmpegPath=${ffmpegPath} inputPath=${absPath} outputPath=${tmpPath} durationSec=${durationSec}`
+    )
 
     // СРАЗУ синхронно (ДО подписки и ДО первого ffmpeg-фрейма) — emit initial progress 0%
     // с jobId, чтобы renderer связал jobId с UI ДО любой попытки cancel (D-09).
@@ -210,7 +221,7 @@ export class MediaExtractor {
     emitProgress(0, null)
 
     return new Promise<Result<MediaExtractResult>>((resolve) => {
-      const handle: JobHandle = { jobId, proc, outPath: finalPath, cancelled: false }
+      const handle: JobHandle = { jobId, proc, outPath: finalPath, cancelled: false, stderrTail: '' }
       this.jobs.set(jobId, handle)
       // 02-05 Gap 3: дедуп резолва — несколько событий могут наложиться;
       // первый победитель закрывает Promise, остальные — no-op.
@@ -245,13 +256,38 @@ export class MediaExtractor {
         })
       })
 
-      proc.on('message', (msg: { type?: string; percent?: number; etaSec?: number | null }) => {
-        if (msg && msg.type === 'progress') {
-          const percent = typeof msg.percent === 'number' ? msg.percent : 0
-          const etaSec = typeof msg.etaSec === 'number' ? msg.etaSec : null
-          emitProgress(percent, etaSec)
+      proc.on(
+        'message',
+        (msg: {
+          type?: string
+          percent?: number
+          etaSec?: number | null
+          stderrTail?: string
+          message?: string
+          code?: number | null
+        }) => {
+          if (!msg) return
+          if (msg.type === 'progress') {
+            const percent = typeof msg.percent === 'number' ? msg.percent : 0
+            const etaSec = typeof msg.etaSec === 'number' ? msg.etaSec : null
+            emitProgress(percent, etaSec)
+            return
+          }
+          // 02-05 diagnostic: worker шлёт 'done' с stderrTail ДО process.exit.
+          // Сохраняем в handle, чтобы exit-handler залогировал при code != 0.
+          if (msg.type === 'done' && typeof msg.stderrTail === 'string') {
+            const h = this.jobs.get(jobId)
+            if (h) h.stderrTail = msg.stderrTail
+            return
+          }
+          if (msg.type === 'error') {
+            // eslint-disable-next-line no-console
+            console.error(
+              `${LOG_PREFIX} worker reported spawn error jobId=${jobId}: ${msg.message}`
+            )
+          }
         }
-      })
+      )
 
       proc.on('exit', (code: number | null) => {
         const h = this.jobs.get(jobId)
@@ -264,7 +300,10 @@ export class MediaExtractor {
         if (code !== 0) {
           fs.unlink(tmpPath).catch(() => {})
           // eslint-disable-next-line no-console
-          console.error(`${LOG_PREFIX} ffmpeg exit code ${code} for jobId ${jobId}`)
+          console.error(
+            `${LOG_PREFIX} ffmpeg exit code ${code} for jobId ${jobId}\n` +
+              `${LOG_PREFIX} ffmpeg stderr tail:\n${h?.stderrTail || '<empty>'}`
+          )
           settle({ ok: false, reason: 'ffmpeg_failed' })
           return
         }
