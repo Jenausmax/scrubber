@@ -111,7 +111,7 @@ describe('Transcribe FSM', () => {
       mp4File('b.mp4', 'C:\\b.mp4')
     ])
     expect(
-      screen.getByText(/Можно перетащить только один файл/i)
+      screen.getByText(/Можно перетащить только один mp4-файл/i)
     ).toBeTruthy()
   })
 
