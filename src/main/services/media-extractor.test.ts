@@ -25,10 +25,13 @@ async function overrideUserDataPath(): Promise<void> {
 }
 
 // Stub ffmpeg-paths — статичные пути, без реальной zoom-resolve логики.
+// 02-05 Gap 2: добавлен assertBinaryExists (sync, throw при отсутствии binary).
+// Дефолтный stub — no-op (бинарник «есть»); тест ниже подменяет на throw.
 vi.mock('./ffmpeg-paths', () => ({
   resolveFfmpeg: vi.fn(() => '/fake/ffmpeg'),
   resolveFfprobe: vi.fn(() => '/fake/ffprobe'),
-  ensureExecutable: vi.fn(async () => undefined)
+  ensureExecutable: vi.fn(async () => undefined),
+  assertBinaryExists: vi.fn(() => undefined)
 }))
 
 interface ForkMock {
@@ -98,6 +101,23 @@ describe('MediaExtractor.init', () => {
     ;(ensureExecutable as unknown as ReturnType<typeof vi.fn>).mockClear()
     await extractor.init()
     expect(ensureExecutable).not.toHaveBeenCalled()
+  })
+
+  it('02-05 Gap 2: init() rejects when assertBinaryExists throws (binary not found)', async () => {
+    const { assertBinaryExists, ensureExecutable } = await import('./ffmpeg-paths')
+    ;(assertBinaryExists as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (p: string, name: string) => {
+        throw new Error(
+          `[services/ffmpeg-paths] ${name} binary not found at resolved path: ${p}`
+        )
+      }
+    )
+    const mod = await import('./media-extractor')
+    await expect(mod.mediaExtractor.init()).rejects.toThrow(/binary not found/)
+    // ensureExecutable не должен быть вызван — assertBinaryExists валит раньше.
+    expect(ensureExecutable).not.toHaveBeenCalled()
+    // Откат для следующих тестов
+    ;(assertBinaryExists as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => undefined)
   })
 })
 

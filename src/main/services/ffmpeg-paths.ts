@@ -13,7 +13,7 @@
 //     На linux/darwin: если fs.access(p, X_OK) падает — вызываем fs.chmod(p, 0o755).
 //     Idempotent. Должен вызываться ровно один раз при app init (D-18).
 
-import { promises as fs, constants as fsc } from 'node:fs'
+import { promises as fs, constants as fsc, existsSync } from 'node:fs'
 import ffmpegStatic from 'ffmpeg-static'
 import { path as ffprobeStatic } from '@ffprobe-installer/ffprobe'
 
@@ -36,6 +36,24 @@ export function resolveFfprobe(): string {
     throw new Error('[services/ffmpeg-paths] @ffprobe-installer/ffprobe did not resolve')
   }
   return ffprobeStatic.replace('app.asar', 'app.asar.unpacked')
+}
+
+/**
+ * 02-05 Gap 2: fail-fast guard `assertBinaryExists`. Если бинарник по resolved-пути
+ * физически отсутствует (asarUnpack сломан / install-app-deps не отработал), бросаем
+ * понятный Error с упоминанием asarUnpack — иначе spawn падает с misleading
+ * 'ffmpeg_failed'. Sync — должно валиться ДО любого spawn в init().
+ */
+export function assertBinaryExists(p: string, name: string): void {
+  if (!existsSync(p)) {
+    const msg =
+      `[services/ffmpeg-paths] ${name} binary not found at resolved path: ${p}. ` +
+      `Check electron-builder asarUnpack config and ensure 'npm run postinstall' ` +
+      `(electron-builder install-app-deps) completed successfully.`
+    // eslint-disable-next-line no-console
+    console.error(msg)
+    throw new Error(msg)
+  }
 }
 
 /**

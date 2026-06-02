@@ -119,3 +119,56 @@ describe('ensureExecutable', () => {
     expect(chmodSpy).toHaveBeenCalledWith('/some/binary', 0o755)
   })
 })
+
+describe('assertBinaryExists', () => {
+  it('existsSync=true → НЕ throw', async () => {
+    const existsSpy = vi.fn().mockReturnValue(true)
+    vi.doMock('node:fs', () => ({
+      promises: { chmod: vi.fn(), access: vi.fn() },
+      constants: { X_OK: 1 },
+      existsSync: existsSpy
+    }))
+    vi.doMock('ffmpeg-static', () => ({ default: '/x/ffmpeg' }))
+    vi.doMock('@ffprobe-installer/ffprobe', () => ({ path: '/x/ffprobe' }))
+    const { assertBinaryExists } = await import('./ffmpeg-paths')
+    expect(() => assertBinaryExists('/some/binary', 'ffmpeg')).not.toThrow()
+    expect(existsSpy).toHaveBeenCalledWith('/some/binary')
+  })
+
+  it('existsSync=false → throw Error с substring "binary not found" + путь', async () => {
+    const existsSpy = vi.fn().mockReturnValue(false)
+    vi.doMock('node:fs', () => ({
+      promises: { chmod: vi.fn(), access: vi.fn() },
+      constants: { X_OK: 1 },
+      existsSync: existsSpy
+    }))
+    vi.doMock('ffmpeg-static', () => ({ default: '/x/ffmpeg' }))
+    vi.doMock('@ffprobe-installer/ffprobe', () => ({ path: '/x/ffprobe' }))
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { assertBinaryExists } = await import('./ffmpeg-paths')
+    expect(() => assertBinaryExists('/missing/ffmpeg.exe', 'ffmpeg')).toThrow(
+      /ffmpeg binary not found/
+    )
+    try {
+      assertBinaryExists('/missing/ffmpeg.exe', 'ffmpeg')
+    } catch (e) {
+      expect((e as Error).message).toContain('/missing/ffmpeg.exe')
+    }
+    expect(errorSpy).toHaveBeenCalled()
+    errorSpy.mockRestore()
+  })
+
+  it('throw содержит подсказку про asarUnpack', async () => {
+    vi.doMock('node:fs', () => ({
+      promises: { chmod: vi.fn(), access: vi.fn() },
+      constants: { X_OK: 1 },
+      existsSync: vi.fn().mockReturnValue(false)
+    }))
+    vi.doMock('ffmpeg-static', () => ({ default: '/x/ffmpeg' }))
+    vi.doMock('@ffprobe-installer/ffprobe', () => ({ path: '/x/ffprobe' }))
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { assertBinaryExists } = await import('./ffmpeg-paths')
+    expect(() => assertBinaryExists('/missing/ffprobe', 'ffprobe')).toThrow(/asarUnpack/)
+    errorSpy.mockRestore()
+  })
+})

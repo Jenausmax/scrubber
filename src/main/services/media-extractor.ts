@@ -37,7 +37,7 @@ import {
   type MediaReason,
   type Result
 } from '../../shared/ipc'
-import { ensureExecutable, resolveFfmpeg, resolveFfprobe } from './ffmpeg-paths'
+import { assertBinaryExists, ensureExecutable, resolveFfmpeg, resolveFfprobe } from './ffmpeg-paths'
 
 const LOG_PREFIX = '[services/media-extractor]'
 
@@ -73,9 +73,15 @@ export class MediaExtractor {
     if (this.initialised) return
     this.cacheDir = join(app.getPath('userData'), 'extracted')
     await fs.mkdir(this.cacheDir, { recursive: true })
+    const ffPath = resolveFfmpeg()
+    const fpPath = resolveFfprobe()
+    // 02-05 Gap 2: fail-fast если asarUnpack сломан/install-app-deps не отработал.
+    // Должно валиться ДО ensureExecutable/spawn — иначе reason маскируется под ffmpeg_failed.
+    assertBinaryExists(ffPath, 'ffmpeg')
+    assertBinaryExists(fpPath, 'ffprobe')
     // D-18: chmod 0o755 для ffmpeg/ffprobe на Linux/macOS (Pitfall #2)
-    await ensureExecutable(resolveFfmpeg())
-    await ensureExecutable(resolveFfprobe())
+    await ensureExecutable(ffPath)
+    await ensureExecutable(fpPath)
     this.initialised = true
   }
 
@@ -206,6 +212,28 @@ export class MediaExtractor {
     return new Promise<Result<MediaExtractResult>>((resolve) => {
       const handle: JobHandle = { jobId, proc, outPath: finalPath, cancelled: false }
       this.jobs.set(jobId, handle)
+      // 02-05 Gap 3: дедуп резолва — несколько событий могут наложиться;
+      // первый победитель закрывает Promise, остальные — no-op.
+      let settled = false
+      const settle = (r: Result<MediaExtractResult>): void => {
+        if (settled) return
+        settled = true
+        resolve(r)
+      }
+      // 02-05 Gap 3 root cause: V8-FatalError от утилитарного процесса — это
+      // НЕ ffmpeg-exit-code, а сбой самого runner'а. Не маскируем под ffmpeg_failed.
+      // (electron UtilityProcess emits 'error' с type='FatalError'; см. types.)
+      proc.on(
+        'error',
+        (type: 'FatalError', location: string, _report: string): void => {
+          // eslint-disable-next-line no-console
+          console.error(
+            `${LOG_PREFIX} utility-process fatal error for jobId ${jobId}: ${type} @ ${location}`
+          )
+          fs.unlink(tmpPath).catch(() => {})
+          settle({ ok: false, reason: 'internal' })
+        }
+      )
 
       proc.on('spawn', () => {
         proc.postMessage({
@@ -230,22 +258,22 @@ export class MediaExtractor {
         this.jobs.delete(jobId)
         if (h?.cancelled) {
           fs.unlink(tmpPath).catch(() => {})
-          resolve({ ok: false, reason: 'cancelled' })
+          settle({ ok: false, reason: 'cancelled' })
           return
         }
         if (code !== 0) {
           fs.unlink(tmpPath).catch(() => {})
           // eslint-disable-next-line no-console
           console.error(`${LOG_PREFIX} ffmpeg exit code ${code} for jobId ${jobId}`)
-          resolve({ ok: false, reason: 'ffmpeg_failed' })
+          settle({ ok: false, reason: 'ffmpeg_failed' })
           return
         }
         fs.rename(tmpPath, finalPath).then(
-          () => resolve({ ok: true, data: { jobId, audioPath: finalPath } }),
+          () => settle({ ok: true, data: { jobId, audioPath: finalPath } }),
           (err) => {
             // eslint-disable-next-line no-console
             console.error(`${LOG_PREFIX} rename tmp→final failed:`, err)
-            resolve({ ok: false, reason: mapFsErr(err) })
+            settle({ ok: false, reason: mapFsErr(err) })
           }
         )
       })

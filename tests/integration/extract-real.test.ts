@@ -78,6 +78,15 @@ describe('integration: ffmpeg-static binaries resolve and are executable', () =>
     expect(code).toBe(0)
     expect(stdout.toLowerCase()).toContain('ffmpeg version')
   })
+
+  it('regression Gap-2: resolved ffmpeg/ffprobe binaries physically exist (dev path)', async () => {
+    // 02-05 Gap 2 regression-guard. В packaged build тот же контракт проверяется
+    // через scripts/smoke-packaged.mjs. Здесь — dev: бинарники должны лежать в
+    // node_modules/ffmpeg-static/ и @ffprobe-installer/<plat>-<arch>/ после install.
+    // Если ffmpeg-static/install-app-deps сломан — этот тест упадёт ДО packaged build.
+    expect(existsSync(resolveFfmpeg())).toBe(true)
+    expect(existsSync(resolveFfprobe())).toBe(true)
+  })
 })
 
 describe('integration: ffprobe reads ~5 second duration from short.mp4', () => {
