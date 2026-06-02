@@ -115,6 +115,12 @@ vi.mock('electron', () => {
     shell: {
       openExternal: vi.fn().mockResolvedValue(undefined)
     },
+    // 02-05 Gap 1: webUtils.getPathForFile — Electron 32+ замена File.path.
+    // Дефолтная реализация возвращает file.name — тесты при необходимости
+    // переопределяют через electron.webUtils.getPathForFile.mockReturnValue(...).
+    webUtils: {
+      getPathForFile: vi.fn((file: File) => (file && file.name) || '')
+    },
     utilityProcess: {
       // Фабрика — каждый вызов возвращает свежий EventEmitter-подобный объект.
       // Тесты Plan 02 используют __emit('message'|'exit'|'spawn'|'error', ...args)

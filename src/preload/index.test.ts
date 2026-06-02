@@ -44,7 +44,7 @@ describe('preload/index — contextBridge bridge', () => {
     restoreContextIsolated()
   })
 
-  it('экспонирует namespaces settings и media (allow-list), settings содержит 4 функции', async () => {
+  it('экспонирует namespaces settings/media + getPathForFile (allow-list), settings содержит 4 функции', async () => {
     const electron = await import('electron')
     const spy = electron.contextBridge.exposeInMainWorld as ReturnType<typeof vi.fn>
     spy.mockClear()
@@ -52,7 +52,11 @@ describe('preload/index — contextBridge bridge', () => {
     await import('./index')
 
     const bridge = spy.mock.calls[0][1] as Record<string, unknown>
-    expect(Object.keys(bridge).sort()).toEqual(['media', 'settings'])
+    // 02-05 Gap 1: top-level `getPathForFile` (Electron 32+ webUtils-bridge).
+    expect(Object.keys(bridge).sort()).toEqual(
+      ['getPathForFile', 'media', 'settings'].sort()
+    )
+    expect(typeof bridge.getPathForFile).toBe('function')
 
     const settings = bridge.settings as Record<string, unknown>
     expect(Object.keys(settings).sort()).toEqual(
