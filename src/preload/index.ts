@@ -8,7 +8,7 @@
 //     прямой доступ к ipcRenderer ни при каких условиях.
 //   - Никаких импортов `node:*`, `fs`, `path`, `child_process`, `os` (Pitfall #9, sandboxed preload).
 
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import { Channels } from '../shared/ipc'
 import type { MediaProgressEvent, ScrubberApi } from '../shared/ipc'
@@ -40,7 +40,11 @@ const scrubber: ScrubberApi = {
         ipcRenderer.removeListener(Channels.MEDIA_PROGRESS, listener)
       }
     }
-  }
+  },
+  // 02-05 Gap 1: Electron 32+ удалил File.path. webUtils.getPathForFile —
+  // единственный поддерживаемый API получения absolute-пути из DataTransfer.files
+  // в sandboxed preload (D-14).
+  getPathForFile: (file: File): string => webUtils.getPathForFile(file)
 }
 
 contextBridge.exposeInMainWorld('scrubber', scrubber)

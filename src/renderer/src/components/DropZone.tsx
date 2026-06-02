@@ -44,8 +44,10 @@ export default function DropZone({
       onError('not_mp4')
       return
     }
-    // Electron-расширение File: `.path` (D-14 sandbox:true сохраняет атрибут).
-    const filePath = (f as File & { path?: string }).path
+    // 02-05 Gap 1: File.path удалён в Electron ≥32. Единственный поддерживаемый
+    // API получения абсолютного пути в renderer — webUtils.getPathForFile,
+    // экспонированный через preload как window.scrubber.getPathForFile.
+    const filePath = window.scrubber.getPathForFile(f)
     if (!filePath || filePath.length === 0) {
       onError('internal')
       return

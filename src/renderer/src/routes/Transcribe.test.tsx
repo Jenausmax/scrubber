@@ -50,6 +50,12 @@ function installScrubberMock(): MediaMock {
       extractAudio: media.extractAudio,
       cancel: media.cancel,
       onProgress: media.onProgress
+    },
+    // 02-05 Gap 1: DropZone теперь читает путь через window.scrubber.getPathForFile.
+    // В тестах берём path из File.__path, который ставит mp4File/txtFile.
+    getPathForFile: (file: File): string => {
+      const p = (file as File & { __path?: string }).__path
+      return typeof p === 'string' ? p : ''
     }
   }
   Object.defineProperty(window, 'scrubber', {
@@ -62,13 +68,15 @@ function installScrubberMock(): MediaMock {
 
 function mp4File(name: string, path: string): File {
   const f = new File([new Uint8Array([0, 0, 0, 0])], name, { type: 'video/mp4' })
-  Object.defineProperty(f, 'path', { value: path, configurable: true })
+  // 02-05 Gap 1: храним path в __path, getPathForFile-мок читает его оттуда
+  // (раньше DropZone читал File.path напрямую — теперь только через preload-bridge).
+  Object.defineProperty(f, '__path', { value: path, configurable: true })
   return f
 }
 
 function txtFile(name: string, path: string): File {
   const f = new File(['hello'], name, { type: 'text/plain' })
-  Object.defineProperty(f, 'path', { value: path, configurable: true })
+  Object.defineProperty(f, '__path', { value: path, configurable: true })
   return f
 }
 

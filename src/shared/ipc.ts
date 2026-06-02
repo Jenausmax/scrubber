@@ -120,4 +120,11 @@ export interface MediaApi {
 export interface ScrubberApi {
   settings: SettingsApi
   media: MediaApi
+  /**
+   * Electron 32+ drag-drop fix (02-05 Gap 1).
+   * `File.path` удалён в Electron ≥32; renderer получает абсолютный путь
+   * только через `webUtils.getPathForFile(file)` в preload.
+   * Это renderer-side утилита, НЕ IPC — без Result-обёртки, синхронная.
+   */
+  getPathForFile: (file: File) => string
 }
