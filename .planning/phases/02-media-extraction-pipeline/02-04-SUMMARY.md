@@ -190,3 +190,26 @@ Closing wave Phase 2. Закрывает acceptance двумя путями:
 1. Создать `.planning/phases/02-media-extraction-pipeline/02-VERIFICATION.md` по шаблону из PLAN Task 2 `<action>` с реальными результатами.
 2. Обновить этот SUMMARY: `status: partial-at-checkpoint` → `complete`; убрать секцию ⏸ Task 2; добавить commit Task 2 в таблицу; пометить D-19 как Implemented.
 3. Финальный коммит: `docs(02-04): VERIFICATION.md — Windows packaged smoke <result>` (+ дополненный SUMMARY).
+
+---
+
+## Task 2 — Smoke-test Result (2026-06-02)
+
+**Status:** failed — 3 gaps зафиксированы в `02-VERIFICATION.md`.
+
+### Что прошло
+- `npm run build:unpack` — успешен (артефакты в `dist/win-unpacked/`).
+- `ffmpeg-static/ffmpeg.exe` и `@ffprobe-installer/ffprobe.exe` распакованы в `resources/app.asar.unpacked/node_modules/…` ✓ — asarUnpack из Plan 01 работает.
+- Приложение запускается, вкладка «Транскрипция» доступна.
+- Pick через кнопку «Выбрать файл» (`dialog.showOpenDialog` → `media.pickFile`) работает.
+
+### Что упало
+1. **Drop-zone не реагирует на drag-drop** — `onDrop`/`onDragOver` не работает (MEDIA-01).
+2. **`extractAudio` возвращает «внутренняя ошибка / неподдерживаемый кодек»** в packaged build — вероятнее всего `ffmpegPath.replace('app.asar', 'app.asar.unpacked')` не применён (Pitfall #1, RESEARCH §Pitfall 1) — БЛОКЕР MEDIA-02/03.
+3. **UI-маппинг ошибок неполный** — `MediaReason → string` не покрывает все 7 кодов из D-16.
+
+Подробности и hypotheses — `02-VERIFICATION.md` §Gaps.
+
+**Next:** `/gsd:plan-phase 2 --gaps` создаст коррекционный план; затем `/gsd:execute-phase 2 --gaps-only` + повторный smoke на Windows.
+
+**Status:** partial (waiting gap-closure).
