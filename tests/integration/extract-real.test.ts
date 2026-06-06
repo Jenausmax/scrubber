@@ -24,6 +24,7 @@ import { join, resolve } from 'node:path'
 import * as os from 'node:os'
 import { resolveFfmpeg, resolveFfprobe, ensureExecutable } from '../../src/main/services/ffmpeg-paths'
 import { parseProgressLine } from '../../src/main/services/progress-parser'
+import { buildExtractArgs } from '../../src/main/utilities/ffmpeg-args'
 
 const execFileP = promisify(execFile)
 
@@ -113,17 +114,8 @@ describe('integration: ffmpeg produces wav 16kHz mono PCM s16le from short.mp4',
     const tmpDir = await fs.mkdtemp(join(os.tmpdir(), 'scrubber-int-'))
     const outWav = join(tmpDir, 'short.wav')
 
-    // Точно те же args, что и в src/main/utilities/ffmpeg-runner.ts (D-01 + D-08).
-    const args = [
-      '-i', SHORT_MP4,
-      '-vn',
-      '-ac', '1',
-      '-ar', '16000',
-      '-c:a', 'pcm_s16le',
-      '-progress', 'pipe:1',
-      '-y',
-      outWav
-    ]
+    // Те же args, что и в проде: общий источник buildExtractArgs (D-01 + D-08).
+    const args = buildExtractArgs(SHORT_MP4, outWav)
     const { code, stdout } = await spawnCapture(resolveFfmpeg(), args)
     expect(code).toBe(0)
     // stdout должен содержать `out_time_us=` строки от `-progress pipe:1`.
@@ -155,20 +147,50 @@ describe('integration: ffmpeg produces wav 16kHz mono PCM s16le from short.mp4',
     await fs.rm(tmpDir, { recursive: true, force: true })
   })
 
+  it('regression 02-06: извлекает в .wav.tmp путь (как прод startExtract) → валидный wav', async () => {
+    // ROOT CAUSE (packaged smoke, Jun 6): startExtract пишет в `${finalPath}.tmp`
+    // = `<hash>.wav.tmp`. ffmpeg выбирает муксер ПО РАСШИРЕНИЮ выходного файла;
+    // `.tmp` неизвестно → "Unable to choose an output format ... Invalid argument"
+    // (exit EINVAL). Старый тест писал в `.wav` и потому баг не ловил.
+    // Гард: тот же buildExtractArgs + tmp-путь как в проде → должен дать exit 0.
+    const tmpDir = await fs.mkdtemp(join(os.tmpdir(), 'scrubber-int-tmp-'))
+    const outTmp = join(tmpDir, 'out.wav.tmp') // расширение как у прод-tmpPath
+
+    const args = buildExtractArgs(SHORT_MP4, outTmp)
+    const { code, stderr } = await spawnCapture(resolveFfmpeg(), args)
+    expect(code, `ffmpeg stderr:\n${stderr}`).toBe(0)
+
+    // Содержимое — настоящий WAV (RIFF), несмотря на расширение .tmp.
+    const fh = await fs.open(outTmp, 'r')
+    const head = Buffer.alloc(4)
+    await fh.read(head, 0, 4, 0)
+    await fh.close()
+    expect(head.toString('ascii')).toBe('RIFF')
+
+    // ffprobe подтверждает 16kHz mono pcm_s16le даже на .tmp-файле.
+    const probe = await spawnCapture(resolveFfprobe(), [
+      '-v', 'error',
+      '-print_format', 'json',
+      '-show_streams',
+      outTmp
+    ])
+    expect(probe.code).toBe(0)
+    const meta = JSON.parse(probe.stdout) as {
+      streams?: Array<{ codec_name?: string; sample_rate?: string; channels?: number }>
+    }
+    const audio = meta.streams![0]
+    expect(audio.codec_name).toBe('pcm_s16le')
+    expect(audio.sample_rate).toBe('16000')
+    expect(audio.channels).toBe(1)
+
+    await fs.rm(tmpDir, { recursive: true, force: true })
+  })
+
   it('handles no-audio mp4 gracefully (ffmpeg либо производит пустой wav, либо exit !=0)', async () => {
     const tmpDir = await fs.mkdtemp(join(os.tmpdir(), 'scrubber-int-na-'))
     const outWav = join(tmpDir, 'no-audio.wav')
 
-    const args = [
-      '-i', NO_AUDIO_MP4,
-      '-vn',
-      '-ac', '1',
-      '-ar', '16000',
-      '-c:a', 'pcm_s16le',
-      '-progress', 'pipe:1',
-      '-y',
-      outWav
-    ]
+    const args = buildExtractArgs(NO_AUDIO_MP4, outWav)
     const { code } = await spawnCapture(resolveFfmpeg(), args)
     // Любой из двух приемлемо: exit 0 (без аудио — пустая дорожка) или exit != 0 (no streams).
     // Главное — нет крэша/exception, и можно отличить.

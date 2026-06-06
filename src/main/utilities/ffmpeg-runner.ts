@@ -22,6 +22,9 @@
 /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any */
 
 const { spawn } = require('node:child_process')
+// Единый источник args (esbuild --bundle инлайнит модуль в ffmpeg-runner.cjs).
+// Та же функция используется в tests/integration/extract-real.test.ts — args не разъезжаются.
+const { buildExtractArgs } = require('./ffmpeg-args') as typeof import('./ffmpeg-args')
 
 type ChildProcLike = {
   stdout: { setEncoding: (e: string) => void; on: (ev: string, cb: (c: string) => void) => void }
@@ -65,25 +68,7 @@ function startFfmpeg(opts: {
   durationSec: number
 }): void {
   const { ffmpegPath, inputPath, outputPath, durationSec } = opts
-  const args = [
-    '-hide_banner',
-    '-nostats',
-    '-loglevel',
-    'error',
-    '-i',
-    inputPath,
-    '-vn',
-    '-ac',
-    '1',
-    '-ar',
-    '16000',
-    '-c:a',
-    'pcm_s16le',
-    '-progress',
-    'pipe:1',
-    '-y',
-    outputPath
-  ]
+  const args = buildExtractArgs(inputPath, outputPath)
   child = spawn(ffmpegPath, args, { windowsHide: true }) as ChildProcLike
   const started = Date.now()
   let stderrTail = ''
