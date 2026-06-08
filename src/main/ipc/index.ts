@@ -4,10 +4,11 @@
 // Источник: 01-RESEARCH.md §Pattern 2, 01-PATTERNS.md §IPC contract shape.
 
 import { registerSettingsHandlers } from './settings'
+import { registerMediaHandlers } from './media'
 
 export function registerIpcHandlers(): void {
   registerSettingsHandlers()
-  // future: registerMediaHandlers() — Phase 2
+  registerMediaHandlers()
   // future: registerTranscribeHandlers() — Phase 3
   // future: registerLlmHandlers() — Phase 4
 }

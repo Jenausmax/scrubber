@@ -8,3 +8,7 @@ out
 # Электронные артефакты / секреты на всякий случай (userData снаружи репо, но мера предосторожности)
 *.bin
 secrets.bin
+
+# Test fixtures — генерируются через tests/fixtures/media/generate.mjs (Phase 2 Plan 04)
+tests/fixtures/media/*.mp4
+tests/fixtures/media/*.wav

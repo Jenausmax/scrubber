@@ -8,7 +8,8 @@
   "homepage": "https://electron-vite.org",
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "electron-vite build",
+    "build:utilities": "esbuild src/main/utilities/ffmpeg-runner.ts --bundle --platform=node --target=node20 --format=cjs --outfile=out/main/ffmpeg-runner.cjs --external:electron",
+    "build": "electron-vite build && npm run build:utilities",
     "start": "electron-vite preview",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
@@ -17,6 +18,7 @@
     "test": "npm run typecheck && vitest run && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
+    "smoke:packaged": "node scripts/smoke-packaged.mjs",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux"
@@ -24,11 +26,16 @@
   "dependencies": {
     "@electron-toolkit/preload": "3.0.2",
     "@electron-toolkit/utils": "4.0.0",
-    "electron-store": "11.0.2"
+    "@ffprobe-installer/ffprobe": "2.1.2",
+    "electron-store": "11.0.2",
+    "ffmpeg-static": "5.3.0"
   },
   "devDependencies": {
     "@electron-toolkit/tsconfig": "2.0.0",
     "@tailwindcss/vite": "4.3.0",
+    "@testing-library/jest-dom": "6.6.3",
+    "@testing-library/react": "16.1.0",
+    "@testing-library/user-event": "14.5.2",
     "@types/node": "22.19.1",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
@@ -37,6 +44,7 @@
     "electron": "42.3.0",
     "electron-builder": "26.8.1",
     "electron-vite": "5.0.0",
+    "jsdom": "25.0.1",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "tailwindcss": "4.3.0",

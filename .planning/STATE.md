@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 2 context gathered
-last_updated: "2026-05-30T09:08:36.388Z"
-last_activity: 2026-05-28 -- Phase 01 execution started
+stopped_at: Phase 2 verified complete (UAT + fix 02-06)
+last_updated: "2026-06-08T10:14:00.000Z"
+last_activity: 2026-06-08 -- Phase 02 verified & closed (MEDIA-01/02/03 + Gap 3); ready for Phase 03
 progress:
   total_phases: 5
-  completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
-  percent: 20
+  completed_phases: 2
+  total_plans: 10
+  completed_plans: 10
+  percent: 40
 ---
 
 # Project State
@@ -21,16 +21,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-27)
 
 **Core value:** Превратить mp4-видео в качественный текстовый транскрипт (`.md`) — это обязано работать, даже если всё остальное отвалится.
-**Current focus:** Phase 01 — foundation-app-shell
+**Current focus:** Phase 3 — local-transcription (Core Value)
 
 ## Current Position
 
-Phase: 01 (foundation-app-shell) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 01
-Last activity: 2026-05-28 -- Phase 01 execution started
+Phase: 2 (media-extraction-pipeline) — ✅ COMPLETE (verified 2026-06-08, Windows-таргет)
+Next: Phase 3 (local-transcription) — discuss/plan
+Status: Ready to start Phase 3
+Last activity: 2026-06-08 -- Phase 02 verified & closed (UAT 4/5 pass, MEDIA-04→v1.1); root-cause fix 02-06
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [████░░░░░░] 40% (2/5 phases)
+
+Note: MEDIA-04 (extraction на Linux/macOS) перенесён в v1.1 — нет host-машин (см. 02-UAT.md, 02-VERIFICATION.md).
 
 ## Performance Metrics
 

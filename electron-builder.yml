@@ -10,7 +10,13 @@ files:
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 asarUnpack:
+  # resources/** — whisper.cpp бинарники и модели (Phase 3+).
+  # ffmpeg-static / @ffprobe-installer — D-18, Pitfall #1: нативные бинарники
+  # не исполняются изнутри app.asar, поэтому распаковываются в app.asar.unpacked
+  # и main-процесс правит путь через .replace('app.asar','app.asar.unpacked').
   - resources/**
+  - node_modules/ffmpeg-static/**
+  - node_modules/@ffprobe-installer/**
 win:
   executableName: react-ts
 nsis:

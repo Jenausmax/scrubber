@@ -1,14 +1,17 @@
 import { defineConfig } from 'vitest/config'
 import { resolve } from 'node:path'
 
-// Vitest 2.x для main/preload (Node-окружение).
-// Renderer-тесты (React/jsdom) появятся в Phase 4 — добавим second config.
+// Vitest 2.x. Main/preload — Node-окружение; renderer — jsdom через per-file
+// `// @vitest-environment jsdom` директиву в шапке *.test.tsx файлов (Phase 2 Plan 03).
 export default defineConfig({
   test: {
     environment: 'node',
     globals: false,
     setupFiles: ['./tests/setup.ts'],
-    include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'tests/**/*.test.ts'],
+    // 60s — integration-тесты (tests/integration/extract-real.test.ts) реально
+    // спавнят ffmpeg/ffprobe на 5-сек fixture (Phase 2 Plan 04 Task 1).
+    testTimeout: 60000,
     reporters: ['default']
   },
   resolve: {
