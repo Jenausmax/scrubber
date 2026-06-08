@@ -14,7 +14,7 @@ scrubber превращает mp4-видео в анализируемый те�
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & App Shell** - Безопасный Electron-каркас, IPC-контракт, safeStorage, базовый UI на трёх ОС (completed 2026-05-30)
-- [ ] **Phase 2: Media Extraction Pipeline** - Выбор/drag&drop mp4 и извлечение аудио через ffmpeg в упакованной сборке
+- [x] **Phase 2: Media Extraction Pipeline** - Выбор/drag&drop mp4 и извлечение аудио через ffmpeg в упакованной сборке (completed 2026-06-08, Windows-таргет; Linux/macOS → v1.1)
 - [ ] **Phase 3: Local Transcription (Core Value)** - Офлайн mp4 → transcript.md через whisper.cpp с прогрессом и Cancel
 - [ ] **Phase 4: LLM Analysis & Prompt Library** - Конфигурируемый LLM, библиотека промптов, анализ транскрипта → analysis.md
 - [ ] **Phase 5: Distribution & Cross-Platform** - Устанавливаемые артефакты под Windows/Linux/macOS, подпись и нотаризация
@@ -55,7 +55,7 @@ Plans:
   3. Приложение извлекает аудиодорожку из выбранного mp4 через ffmpeg без зависания UI
   4. Извлечение аудио работает в **упакованной сборке** на всех трёх ОС (ffmpeg-бинарник доступен из прода через asarUnpack/extraResources)
 
-**Plans:** 5 plans (4 baseline + 1 gap-closure; 3/5 executed)
+**Plans:** 6 plans (4 baseline + gap-closure 02-05 + root-cause fix 02-06); все выполнены
 Plans:
 **Wave 1**
 
@@ -71,11 +71,15 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 02-04-PLAN.md — Integration test (реальный ffmpeg) + packaged smoke Windows + VERIFICATION.md (Wave 4)
+- [x] 02-04-PLAN.md — Integration test (реальный ffmpeg) + packaged smoke Windows + VERIFICATION.md (Wave 4)
 
 **Gap closure** *(human smoke выявил 3 gap'a — см. 02-VERIFICATION.md)*
 
-- [ ] 02-05-PLAN.md — Gap-closure: webUtils.getPathForFile (Gap 1) + assertBinaryExists + smoke-packaged.mjs (Gap 2) + uniqueness REASON_COPY (Gap 3)
+- [x] 02-05-PLAN.md — Gap-closure: webUtils.getPathForFile (Gap 1) + assertBinaryExists + smoke-packaged.mjs (Gap 2) + uniqueness REASON_COPY (Gap 3)
+
+**Root-cause fix** *(packaged smoke 2026-06-06 — Gap 2 имел более глубокую причину; см. 02-UAT.md)*
+
+- [x] 02-06 (fix-коммиты, без PLAN.md) — `-f wav` muxer fix (commit 7f9e9f0) + Gap 3 assertBinaryExists в startExtract (commit 6fcb885). Verified end-to-end на packaged build; MEDIA-01/02/03 ✅, MEDIA-04 (Linux/macOS) → v1.1.
 
 **UI hint**: yes
 
@@ -135,7 +139,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & App Shell | 4/4 | Complete   | 2026-05-30 |
-| 2. Media Extraction Pipeline | 3/4 | In Progress|  |
+| 2. Media Extraction Pipeline | 6/6 | Complete (Windows; Linux/macOS→v1.1) | 2026-06-08 |
 | 3. Local Transcription (Core Value) | 0/TBD | Not started | - |
 | 4. LLM Analysis & Prompt Library | 0/TBD | Not started | - |
 | 5. Distribution & Cross-Platform | 0/TBD | Not started | - |

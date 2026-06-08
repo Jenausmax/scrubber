@@ -1,14 +1,14 @@
 ---
-status: partial
+status: complete
 phase: 02-media-extraction-pipeline
-source: [02-01-SUMMARY.md, 02-02-SUMMARY.md, 02-03-SUMMARY.md, 02-04-SUMMARY.md, 02-05-SUMMARY.md, fix-02-06 (commit 7f9e9f0)]
+source: [02-01-SUMMARY.md, 02-02-SUMMARY.md, 02-03-SUMMARY.md, 02-04-SUMMARY.md, 02-05-SUMMARY.md, fix-02-06 (commits 7f9e9f0, 6fcb885)]
 started: 2026-06-08T10:03:19Z
-updated: 2026-06-08T10:03:19Z
+updated: 2026-06-08T10:12:00Z
 ---
 
 ## Current Test
 
-[testing paused — 1 minor issue (Gap 3) + 1 deferred (MEDIA-04 cross-platform) outstanding]
+[testing complete — MEDIA-01/02/03 + Gap 3 ✅; MEDIA-04 (Linux/macOS) deferred → v1.1]
 
 ## Tests
 
@@ -29,9 +29,8 @@ note: Verified live 2026-06-06 (packaged). Финальный wav создан: 
 
 ### 4. Осмысленный текст ошибки при отсутствии ffmpeg-бинарника (Gap 3 / UX)
 expected: Если ffmpeg-бинарник не распакован — UI показывает `internal`-копию «…бинарник ffmpeg может быть не распакован», а НЕ «неподдерживаемый кодек».
-result: issue
-reported: "Code-trace (verify-work, Claude): assertBinaryExists вызывается только в init() при старте, его throw проглатывается в index.ts. Live extract-путь (probe→startExtract→fork) при отсутствующем ffmpeg.exe мапит spawn-ENOENT воркера в reason='ffmpeg_failed' → UI показывает «неподдерживаемый кодек», а не задуманный internal-намёк. Задуманный UX Gap 3 не подключён к extract-пути."
-severity: minor
+result: pass
+note: Исправлено commit 6fcb885 — startExtract() вызывает assertBinaryExists перед fork → reason 'internal'. Verified unit-тестом media-extractor.test.ts «Gap 3» (RED→GREEN): отсутствующий бинарник → reason internal, fork не вызывается. InlineError 'internal' содержит намёк про нераспакованный бинарник (подтверждено). Опционально: live missing-binary smoke на packaged build (rename ffmpeg.exe→.bak) не прогонялся — логика покрыта unit-тестом + копия подтверждена.
 
 ### 5. Кросс-платформенность Linux / macOS (MEDIA-04)
 expected: Тот же pick→extract→wav pipeline на Linux и macOS packaged build.
@@ -42,8 +41,8 @@ reason: Нет Linux/macOS host-машин. Предварительно акц�
 ## Summary
 
 total: 5
-passed: 3
-issues: 1
+passed: 4
+issues: 0
 pending: 0
 skipped: 0
 blocked: 1
@@ -51,17 +50,13 @@ blocked: 1
 ## Gaps
 
 - truth: "При отсутствии ffmpeg-бинарника UI показывает internal-копию про нераспакованный бинарник, а не «неподдерживаемый кодек»"
-  status: failed
-  reason: "Code-trace: assertBinaryExists только в init() (throw проглатывается в index.ts); live extract-путь мапит spawn-ENOENT ffmpeg в reason='ffmpeg_failed'. Задуманный Gap-3 UX не подключён."
+  status: resolved
+  reason: "Code-trace: assertBinaryExists только в init() (throw проглатывается в index.ts); live extract-путь мапил spawn-ENOENT ffmpeg в reason='ffmpeg_failed'."
   severity: minor
   test: 4
-  root_cause: "assertBinaryExists вызывается лишь в MediaExtractor.init() (bootstrap, swallowed). startExtract()/probe() не проверяют наличие бинарника перед fork → отсутствующий ffmpeg.exe доходит как spawn-ENOENT воркера → proc exit code≠0 → main маппит в ffmpeg_failed (а не internal)."
+  root_cause: "assertBinaryExists вызывался лишь в MediaExtractor.init() (bootstrap, swallowed). startExtract() не проверял наличие бинарника перед fork → отсутствующий ffmpeg.exe доходил как spawn-ENOENT воркера → proc exit code≠0 → main маппил в ffmpeg_failed (а не internal)."
+  fix: "commit 6fcb885 — startExtract() вызывает assertBinaryExists(resolveFfmpeg(),'ffmpeg') перед utilityProcess.fork; при throw → return reason='internal'. TDD-гард: media-extractor.test.ts «Gap 3» (RED→GREEN)."
   artifacts:
     - path: "src/main/services/media-extractor.ts"
-      issue: "startExtract() не вызывает assertBinaryExists(ffmpeg) перед utilityProcess.fork; worker spawn-ENOENT неотличим от ffmpeg runtime-фейла (оба → exit≠0 → ffmpeg_failed)"
-    - path: "src/main/index.ts"
-      issue: "mediaExtractor.init() throw проглатывается — состояние 'binary missing' не доносится до extract-пути"
-  missing:
-    - "В startExtract() перед fork вызвать assertBinaryExists(resolveFfmpeg(),'ffmpeg') и при throw вернуть reason='internal' (а не давать дойти до fork → ffmpeg_failed)"
-    - "ИЛИ: воркер при child.on('error' ENOENT) шлёт отдельный сигнал, main маппит в 'internal' вместо 'ffmpeg_failed'"
+      issue: "[resolved] startExtract() теперь вызывает assertBinaryExists перед fork"
   debug_session: ""
