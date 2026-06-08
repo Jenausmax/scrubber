@@ -265,6 +265,33 @@ describe('MediaExtractor.startExtract — failure modes', () => {
     expect(r).toEqual({ ok: false, reason: 'invalid_argument' })
   })
 
+  it('Gap 3: ffmpeg-бинарник исчез после init → startExtract возвращает internal БЕЗ fork', async () => {
+    // UX-контракт: отсутствующий бинарник → reason 'internal' (UI намекает «бинарник
+    // может быть не распакован»), НЕ ffmpeg_failed («неподдерживаемый кодек»).
+    // assertBinaryExists только в init() недостаточно: init-throw проглатывается в
+    // index.ts, а live extract-путь без проверки доводил spawn-ENOENT до ffmpeg_failed.
+    const extractor = await freshExtractor() // init ок (assertBinaryExists — no-op)
+    const electron = await import('electron')
+    const { assertBinaryExists } = await import('./ffmpeg-paths')
+    // Симулируем: бинарник удалён ПОСЛЕ успешного init.
+    ;(assertBinaryExists as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (p: string, name: string) => {
+        throw new Error(`[services/ffmpeg-paths] ${name} binary not found: ${p}`)
+      }
+    )
+    const forkMock = getForkMock(electron)
+    forkMock.mockClear()
+
+    const p = extractor.startExtract(realInputPath, 10, () => {})
+    await flushAsync()
+    expect(forkMock).not.toHaveBeenCalled() // короткое замыкание ДО fork
+    const r = await p
+    expect(r).toEqual({ ok: false, reason: 'internal' })
+
+    // Откат для следующих тестов
+    ;(assertBinaryExists as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => undefined)
+  })
+
   it('не существующий путь → file_not_found', async () => {
     const extractor = await freshExtractor()
     const absent = process.platform === 'win32' ? 'C:\\nonexistent-xyz.mp4' : '/nonexistent-xyz.mp4'

@@ -191,6 +191,18 @@ export class MediaExtractor {
 
     const jobId = randomUUID()
     const ffmpegPath = resolveFfmpeg()
+    // 02-06 Gap 3: бинарник мог исчезнуть после init() (init-throw проглатывается
+    // в index.ts, чтобы settings/secrets продолжали работать). Проверяем ПЕРЕД fork —
+    // иначе spawn-ENOENT воркера дойдёт как exit code≠0 → reason 'ffmpeg_failed'
+    // («неподдерживаемый кодек»), а пользователю нужен 'internal' (UI: «бинарник ffmpeg
+    // может быть не распакован»). assertBinaryExists только в init() этот путь не закрывал.
+    try {
+      assertBinaryExists(ffmpegPath, 'ffmpeg')
+    } catch (err: unknown) {
+      // eslint-disable-next-line no-console
+      console.error(`${LOG_PREFIX} ffmpeg binary missing before fork:`, err)
+      return { ok: false, reason: 'internal' }
+    }
     // utility-script бандлится esbuild'ом в out/main/ffmpeg-runner.cjs (см. package.json scripts.build:utilities)
     const scriptPath = join(__dirname, 'ffmpeg-runner.cjs')
 
