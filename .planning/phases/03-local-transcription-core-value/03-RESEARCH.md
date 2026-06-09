@@ -555,20 +555,20 @@ interface ModelsApi {
 | A4 | silero-v5.1.2 достаточен (vs v6.2.0) | §Stack | Незначительно — обе модели валидны; закрепить одну в манифесте |
 | A5 | whisper-cli печатает сегменты в stdout live (не только в конце) | §Progress Parsing | Если только в конце — живой стриминг (D-11) не сработает; fallback: %-бар из stderr + JSON в конце. Проверить на первом реальном прогоне |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Linux/macOS whisper-cli бинарники**
    - Знаем: upstream prebuilt — только Windows; Linux/macOS — build-from-source (CMake).
    - Неясно: точный CI-рецепт сборки per-OS.
-   - Рекомендация: v1 = Windows-only (совпадает с MEDIA-04→v1.1). Build-from-source в Phase 5/v1.1. НЕ блокировать v1.
+   - **RESOLVED:** v1 = Windows-only (совпадает с MEDIA-04→v1.1). Build-from-source отложен в Phase 5/v1.1. НЕ блокирует планирование v1.
 
 2. **Точные байтовые размеры + актуальность SHA моделей**
    - Знаем: SHA256 из HF pointer (verified на момент research).
    - Неясно: точные байты small/medium/large-v3 (HF округляет в ГБ); upstream может перезалить.
-   - Рекомендация: checkpoint:human-verify — `curl -sI` + LFS pointer на момент реализации Wave с моделями.
+   - **RESOLVED:** покрыто checkpoint:human-verify в 03-01 Task 3 — `curl -sI` + LFS pointer сверяются на момент реализации Wave с моделями.
 
 3. **Живой стриминг сегментов в реальном времени (A5)**
-   - Рекомендация: на первом реальном прогоне подтвердить, что stdout-сегменты идут по мере распознавания, а не батчем в конце. Если батчем — % из stderr остаётся живым, сегменты появятся в конце (деградация UX, не блокер).
+   - **RESOLVED:** покрыто checkpoint в 03-02/03-04 — на первом реальном прогоне подтвердить, что stdout-сегменты идут по мере распознавания, а не батчем в конце. Если батчем — % из stderr остаётся живым, сегменты появятся в конце (деградация UX, не блокер).
 
 ## Environment Availability
 

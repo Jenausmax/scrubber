@@ -47,7 +47,7 @@ created: 2026-06-09
 | 03-02-03 | 02 | 2 | TRANS-07 | T-3-06 | open/reveal только для нашего mdPath | unit (RTL) | `npm run test:unit -- src/renderer/src/routes/Transcribe.test.tsx src/renderer/src/components/InlineError.test.tsx` | ⬜ |
 | 03-02-04 (chk) | 02 | 2 | TRANS-01, TRANS-03 | — | офлайн транскрипция; качество ru | human UAT | manual dev e2e | ⬜ |
 | 03-03-01 | 03 | 3 | TRANS-02 | T-3-07, T-3-08, T-3-09 | whitelist model-name (анти-SSRF); SHA256; .tmp→rename | unit | `npm run test:unit -- src/main/services/model-manager.test.ts` | ⬜ |
-| 03-03-02 | 03 | 3 | TRANS-02 | T-3-07 | model_missing блок + отсылка в Settings | unit (RTL) | `npm run test:unit -- src/renderer/src/routes/Settings.tsx src/renderer/src/routes/Transcribe.test.tsx` | ⬜ |
+| 03-03-02 | 03 | 3 | TRANS-02 | T-3-07 | model_missing блок + отсылка в Settings | unit (RTL) | `npm run test:unit -- src/renderer/src/routes/Settings.test.tsx src/renderer/src/routes/Transcribe.test.tsx` | ⬜ |
 | 03-04-01 | 04 | 4 | TRANS-03, TRANS-04, TRANS-05, TRANS-07 | T-3-06 | saveAs путь только из showSaveDialog | unit (RTL) | `npm run test:unit -- src/renderer/src/routes/Transcribe.test.tsx` | ⬜ |
 | 03-04-02 | 04 | 4 | TRANS-01, TRANS-04 | T-3-10 | whisper-cli+DLL из app.asar.unpacked (Pitfall 1) | integration + smoke | `npm run test:unit -- tests/integration/transcribe-real.test.ts` | ⬜ |
 | 03-04-03 (chk) | 04 | 4 | TRANS-03..07 | — | packaged e2e; качество ru без галлюцинаций | human UAT | manual packaged e2e | ⬜ |

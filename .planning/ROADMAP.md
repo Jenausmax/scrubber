@@ -100,9 +100,20 @@ Plans:
 **Plans:** 4 plans (Wave 0 контракты+стабы → ядро mp4→transcript.md → управление моделями → live-UX+валидация)
 Plans:
 
+**Wave 1**
+
 - [ ] 03-01-PLAN.md — Контракт transcribe.*/models.* + Wave 0 Nyquist-стабы + whisper-args/paths + подготовка whisper-cli бинарника (Wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 03-02-PLAN.md — ЯДРО ЦЕННОСТИ: офлайн mp4→transcript.md (whisper-runner + transcriber + transcript-builder + минимальный renderer-слайс) (Wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 03-03-PLAN.md — Управление моделями: скачивание+SHA256+отмена+удаление в Settings + model_missing-блок на Transcribe (Wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 03-04-PLAN.md — Live-стриминг+бар, cancel-partial, тумблер таймкодов, «Сохранить как», селектор языка + integration/packaged smoke (Wave 4)
 
 **UI hint**: yes
