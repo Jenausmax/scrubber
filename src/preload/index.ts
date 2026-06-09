@@ -11,7 +11,13 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import { Channels } from '../shared/ipc'
-import type { MediaProgressEvent, ScrubberApi } from '../shared/ipc'
+import type {
+  MediaProgressEvent,
+  ModelProgressEvent,
+  ScrubberApi,
+  TranscribeProgressEvent,
+  TranscribeSegmentEvent
+} from '../shared/ipc'
 
 if (!process.contextIsolated) {
   throw new Error(
@@ -38,6 +44,44 @@ const scrubber: ScrubberApi = {
       ipcRenderer.on(Channels.MEDIA_PROGRESS, listener)
       return (): void => {
         ipcRenderer.removeListener(Channels.MEDIA_PROGRESS, listener)
+      }
+    }
+  },
+  // Phase 3 Plan 01 (03-RESEARCH.md TRANS-01..07): namespace transcribe.*
+  // start/cancel/saveAs/openFile/revealInFolder — request-response через invoke.
+  // onProgress/onSegment подписываются на event-каналы и возвращают unsubscribe.
+  transcribe: {
+    start: (audioPath, opts) => ipcRenderer.invoke(Channels.TRANSCRIBE_START, audioPath, opts),
+    cancel: (jobId) => ipcRenderer.invoke(Channels.TRANSCRIBE_CANCEL, jobId),
+    saveAs: (md, defaultName) => ipcRenderer.invoke(Channels.TRANSCRIBE_SAVE_AS, md, defaultName),
+    openFile: (path) => ipcRenderer.invoke(Channels.TRANSCRIBE_OPEN, path),
+    revealInFolder: (path) => ipcRenderer.invoke(Channels.TRANSCRIBE_REVEAL, path),
+    onProgress: (cb) => {
+      const listener = (_e: IpcRendererEvent, payload: TranscribeProgressEvent): void => cb(payload)
+      ipcRenderer.on(Channels.TRANSCRIBE_PROGRESS, listener)
+      return (): void => {
+        ipcRenderer.removeListener(Channels.TRANSCRIBE_PROGRESS, listener)
+      }
+    },
+    onSegment: (cb) => {
+      const listener = (_e: IpcRendererEvent, payload: TranscribeSegmentEvent): void => cb(payload)
+      ipcRenderer.on(Channels.TRANSCRIBE_SEGMENT, listener)
+      return (): void => {
+        ipcRenderer.removeListener(Channels.TRANSCRIBE_SEGMENT, listener)
+      }
+    }
+  },
+  // Phase 3 Plan 01 (03-RESEARCH.md TRANS-02, D-10): namespace models.*
+  models: {
+    list: () => ipcRenderer.invoke(Channels.MODELS_LIST),
+    download: (name) => ipcRenderer.invoke(Channels.MODELS_DOWNLOAD, name),
+    cancel: (jobId) => ipcRenderer.invoke(Channels.MODELS_CANCEL, jobId),
+    delete: (name) => ipcRenderer.invoke(Channels.MODELS_DELETE, name),
+    onProgress: (cb) => {
+      const listener = (_e: IpcRendererEvent, payload: ModelProgressEvent): void => cb(payload)
+      ipcRenderer.on(Channels.MODELS_PROGRESS, listener)
+      return (): void => {
+        ipcRenderer.removeListener(Channels.MODELS_PROGRESS, listener)
       }
     }
   },

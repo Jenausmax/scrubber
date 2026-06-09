@@ -46,7 +46,31 @@ export const Channels = {
   /** media.cancel(jobId) — SIGTERM в utility-процесс ffmpeg (02-CONTEXT.md D-09, D-15). */
   MEDIA_CANCEL: 'media:cancel',
   /** media:progress — event-канал, webContents.send из main, ipcRenderer.on в preload (02-CONTEXT.md D-08, D-15). */
-  MEDIA_PROGRESS: 'media:progress'
+  MEDIA_PROGRESS: 'media:progress',
+  /** transcribe.start(audioPath,{model,language}) — старт whisper-job через utilityProcess.fork (03-CONTEXT.md D-08, D-14, TRANS-01/06). */
+  TRANSCRIBE_START: 'transcribe:start',
+  /** transcribe.cancel(jobId) — SIGTERM в whisper utility-процесс → reason cancelled (03-RESEARCH.md TRANS-05). */
+  TRANSCRIBE_CANCEL: 'transcribe:cancel',
+  /** transcribe:progress — event-канал, percent из stderr `progress=N%` (03-RESEARCH.md TRANS-04). */
+  TRANSCRIBE_PROGRESS: 'transcribe:progress',
+  /** transcribe:segment — event-канал, живые сегменты из stdout SEG-regex (03-RESEARCH.md TRANS-04). */
+  TRANSCRIBE_SEGMENT: 'transcribe:segment',
+  /** transcribe.saveAs(md,defaultName?) — нативный save dialog для итогового .md (03-CONTEXT.md D-04, TRANS-03). */
+  TRANSCRIBE_SAVE_AS: 'transcribe:saveAs',
+  /** transcribe.openFile(path) — shell.openPath сохранённого .md (TRANS-03 UX). */
+  TRANSCRIBE_OPEN: 'transcribe:open',
+  /** transcribe.revealInFolder(path) — shell.showItemInFolder для .md (TRANS-03 UX). */
+  TRANSCRIBE_REVEAL: 'transcribe:reveal',
+  /** models.list() — перечень доступных whisper-моделей + статус downloaded (03-RESEARCH.md TRANS-02, D-10). */
+  MODELS_LIST: 'models:list',
+  /** models.download(name) — старт download-job с SHA256-проверкой (03-RESEARCH.md TRANS-02, D-10). */
+  MODELS_DOWNLOAD: 'models:download',
+  /** models.cancel(jobId) — отмена download-job (03-RESEARCH.md TRANS-02). */
+  MODELS_CANCEL: 'models:cancel',
+  /** models.delete(name) — удалить скачанную модель из userData/models (03-RESEARCH.md TRANS-02). */
+  MODELS_DELETE: 'models:delete',
+  /** models:progress — event-канал, percent скачивания модели (03-RESEARCH.md TRANS-02). */
+  MODELS_PROGRESS: 'models:progress'
 } as const
 
 export type ChannelName = (typeof Channels)[keyof typeof Channels]
@@ -114,12 +138,104 @@ export interface MediaApi {
 }
 
 /**
+ * Reason-коды для transcribe-handler'ов (03-CONTEXT.md D-16, зеркало MediaReason).
+ * Все handler'ы возвращают Result, никаких throw через границу IPC (Pitfall #7 Phase 1).
+ */
+export type TranscribeReason =
+  | 'invalid_argument'
+  | 'model_missing'
+  | 'audio_not_found'
+  | 'whisper_failed'
+  | 'cancelled'
+  | 'disk_full'
+  | 'internal'
+
+/**
+ * Reason-коды для models-handler'ов (03-RESEARCH.md TRANS-02, D-10).
+ * sha_mismatch — целостность скачанной модели (анти-коррупция, не безопасность).
+ */
+export type ModelReason =
+  | 'invalid_argument'
+  | 'download_failed'
+  | 'sha_mismatch'
+  | 'cancelled'
+  | 'disk_full'
+  | 'internal'
+
+/**
+ * Event-payload, который main шлёт в renderer через webContents.send(TRANSCRIBE_PROGRESS)
+ * (03-RESEARCH.md TRANS-04 — percent из stderr `progress=N%`, cap 99). Зеркало MediaProgressEvent.
+ */
+export interface TranscribeProgressEvent {
+  jobId: string
+  percent: number
+}
+
+/**
+ * Event-payload живого сегмента транскрипции, webContents.send(TRANSCRIBE_SEGMENT)
+ * (03-RESEARCH.md TRANS-04 — SEG-regex по stdout: startMs + текст).
+ */
+export interface TranscribeSegmentEvent {
+  jobId: string
+  startMs: number
+  text: string
+}
+
+/**
+ * Event-payload прогресса скачивания модели, webContents.send(MODELS_PROGRESS)
+ * (03-RESEARCH.md TRANS-02).
+ */
+export interface ModelProgressEvent {
+  name: string
+  percent: number
+}
+
+/**
+ * Transcribe namespace — Phase 3 контракт (03-RESEARCH.md TRANS-01..07).
+ * start/cancel/saveAs/openFile/revealInFolder — request-response через ipcRenderer.invoke.
+ * onProgress/onSegment — подписка на event-каналы TRANSCRIBE_PROGRESS/TRANSCRIBE_SEGMENT,
+ * каждая возвращает unsubscribe-функцию (зеркало MediaApi.onProgress).
+ * GREEN-реализация распределена по слайсам 03-02 (ядро pipeline) / 03-04 (UX).
+ */
+export interface TranscribeApi {
+  start: (
+    audioPath: string,
+    opts: { model: string; language: string }
+  ) => Promise<Result<{ jobId: string }>>
+  cancel: (jobId: string) => Promise<Result>
+  /** defaultName опционален — имя файла формирует main (03-04), не renderer. */
+  saveAs: (md: string, defaultName?: string) => Promise<Result<{ path: string } | null>>
+  openFile: (path: string) => Promise<Result>
+  revealInFolder: (path: string) => Promise<Result>
+  onProgress: (cb: (event: TranscribeProgressEvent) => void) => () => void
+  onSegment: (cb: (event: TranscribeSegmentEvent) => void) => () => void
+}
+
+/**
+ * Models namespace — Phase 3 контракт (03-RESEARCH.md TRANS-02, D-10).
+ * list/download/cancel/delete — request-response через ipcRenderer.invoke.
+ * onProgress — подписка на event-канал MODELS_PROGRESS, возвращает unsubscribe-функцию.
+ * GREEN-реализация — в слайсе 03-03 (управление моделями).
+ */
+export interface ModelsApi {
+  list: () => Promise<Result<Array<{ name: string; sizeBytes: number; downloaded: boolean }>>>
+  download: (name: string) => Promise<Result<{ jobId: string }>>
+  cancel: (jobId: string) => Promise<Result>
+  delete: (name: string) => Promise<Result>
+  onProgress: (cb: (event: ModelProgressEvent) => void) => () => void
+}
+
+/**
  * Корневой API, который preload экспонирует в renderer как `window.scrubber`.
  * Расширяется новыми namespaces в Phase 2..4.
  */
 export interface ScrubberApi {
   settings: SettingsApi
   media: MediaApi
+  /** Транскрипция аудио → текст через локальный whisper-cli (03-RESEARCH.md TRANS-01..07). */
+  transcribe: TranscribeApi
+  /** Управление whisper-моделями: список / скачивание / удаление (03-RESEARCH.md TRANS-02, D-10). */
+  models: ModelsApi
   /**
    * Electron 32+ drag-drop fix (02-05 Gap 1).
    * `File.path` удалён в Electron ≥32; renderer получает абсолютный путь
