@@ -21,6 +21,11 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   main: {
     build: {
+      // emptyOutDir:false — иначе `electron-vite dev` очищает out/main при старте и
+      // удаляет ffmpeg-runner.cjs/whisper-runner.cjs (их собирает отдельный esbuild-шаг
+      // build:utilities через predev-хук). Без этого utilityProcess.fork падает в dev —
+      // извлечение аудио/транскрипция возвращают ffmpeg_failed («повреждён/кодек»).
+      emptyOutDir: false,
       rollupOptions: {
         output: {
           format: 'es'
