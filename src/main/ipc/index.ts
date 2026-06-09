@@ -5,10 +5,11 @@
 
 import { registerSettingsHandlers } from './settings'
 import { registerMediaHandlers } from './media'
+import { registerTranscribeHandlers } from './transcribe'
 
 export function registerIpcHandlers(): void {
   registerSettingsHandlers()
   registerMediaHandlers()
-  // future: registerTranscribeHandlers() — Phase 3
+  registerTranscribeHandlers() // Phase 3 — transcribe.* (ядро ценности)
   // future: registerLlmHandlers() — Phase 4
 }

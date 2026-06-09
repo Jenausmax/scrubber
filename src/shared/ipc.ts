@@ -191,6 +191,20 @@ export interface ModelProgressEvent {
 }
 
 /**
+ * Результат transcribe.start — итог транскрипции (03-02, ядро ценности).
+ * start резолвится по завершению whisper-job (зеркало MediaExtractResult, который
+ * резолвится по exit ffmpeg): jobId + путь к авто-сохранённому .md + готовый текст
+ * (для немедленного показа в окне без повторного чтения файла) + накопленные сегменты
+ * (для тумблера таймкодов в 03-04 без re-run, D-02).
+ */
+export interface TranscribeStartResult {
+  jobId: string
+  mdPath: string
+  text: string
+  segments: Array<{ startMs: number; text: string }>
+}
+
+/**
  * Transcribe namespace — Phase 3 контракт (03-RESEARCH.md TRANS-01..07).
  * start/cancel/saveAs/openFile/revealInFolder — request-response через ipcRenderer.invoke.
  * onProgress/onSegment — подписка на event-каналы TRANSCRIBE_PROGRESS/TRANSCRIBE_SEGMENT,
@@ -201,7 +215,7 @@ export interface TranscribeApi {
   start: (
     audioPath: string,
     opts: { model: string; language: string }
-  ) => Promise<Result<{ jobId: string }>>
+  ) => Promise<Result<TranscribeStartResult>>
   cancel: (jobId: string) => Promise<Result>
   /** defaultName опционален — имя файла формирует main (03-04), не renderer. */
   saveAs: (md: string, defaultName?: string) => Promise<Result<{ path: string } | null>>

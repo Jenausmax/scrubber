@@ -16,6 +16,7 @@ import { secureBackend } from './services/secure-backend'
 import { secretsStore } from './services/secrets-store'
 import { settingsStore } from './services/settings-store'
 import { mediaExtractor } from './services/media-extractor'
+import { transcriber } from './services/transcriber'
 import { registerIpcHandlers } from './ipc'
 
 app
@@ -47,6 +48,16 @@ app
       // eslint-disable-next-line no-console
       console.error('[main] mediaExtractor.init failed:', err)
       // Не падаем целиком — settings/secrets уже работают; ffmpeg-handler вернёт reason при первом invoke.
+    }
+
+    // 5b. Transcriber init — assertBinaryExists(whisper-cli) + chmod (Pitfall #2) +
+    //     mkdir userData/models/. Тот же try/catch-паттерн: init-throw не валит окно,
+    //     transcribe-handler вернёт reason ('internal'/'model_missing') при первом invoke (Gap 3).
+    try {
+      await transcriber.init()
+    } catch (err: unknown) {
+      // eslint-disable-next-line no-console
+      console.error('[main] transcriber.init failed:', err)
     }
 
     // 6. Окно

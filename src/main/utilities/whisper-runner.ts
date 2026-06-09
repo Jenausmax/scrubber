@@ -24,6 +24,11 @@
 
 /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any */
 
+// `export {}` делает файл TS-модулем (а не глобальным скриптом) — иначе его top-level
+// const'ы коллидируют с ffmpeg-runner.ts в глобальной области (оба — CJS-скрипты).
+// esbuild --format=cjs трактует это корректно (пустой re-export ничего не эмитит).
+export {}
+
 const { spawn } = require('node:child_process')
 // Единый источник args (esbuild --bundle инлайнит модуль в whisper-runner.cjs).
 const { buildTranscribeArgs } =

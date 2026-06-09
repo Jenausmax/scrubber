@@ -113,7 +113,11 @@ vi.mock('electron', () => {
       send: vi.fn()
     },
     shell: {
-      openExternal: vi.fn().mockResolvedValue(undefined)
+      openExternal: vi.fn().mockResolvedValue(undefined),
+      // Phase 3: transcribe.open/reveal — shell.openPath возвращает '' при успехе
+      // (непустая строка = сообщение об ошибке), showItemInFolder синхронный.
+      openPath: vi.fn().mockResolvedValue(''),
+      showItemInFolder: vi.fn()
     },
     // 02-05 Gap 1: webUtils.getPathForFile — Electron 32+ замена File.path.
     // Дефолтная реализация возвращает file.name — тесты при необходимости
