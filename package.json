@@ -8,7 +8,7 @@
   "homepage": "https://electron-vite.org",
   "scripts": {
     "dev": "electron-vite dev",
-    "build:utilities": "esbuild src/main/utilities/ffmpeg-runner.ts --bundle --platform=node --target=node20 --format=cjs --outfile=out/main/ffmpeg-runner.cjs --external:electron",
+    "build:utilities": "esbuild src/main/utilities/ffmpeg-runner.ts --bundle --platform=node --target=node20 --format=cjs --outfile=out/main/ffmpeg-runner.cjs --external:electron && esbuild src/main/utilities/whisper-runner.ts --bundle --platform=node --target=node20 --format=cjs --outfile=out/main/whisper-runner.cjs --external:electron",
     "build": "electron-vite build && npm run build:utilities",
     "start": "electron-vite preview",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
