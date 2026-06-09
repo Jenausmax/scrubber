@@ -163,10 +163,12 @@ userData/models/ggml-silero-v5.1.2.bin                 ← VAD-модель (с�
 
 | Имя | Файл | URL (resolve/main/) | Размер | SHA256 |
 |-----|------|---------------------|--------|--------|
-| small | `ggml-small.bin` | huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin | 488 MB (~511,705,088 B) | `1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b` |
-| medium | `ggml-medium.bin` | …/resolve/main/ggml-medium.bin | 1.53 GB | `6c14d5adee5f86394037b4e4e8b59f1673b6cee10e3cf0b11bbdbee79c156208` |
-| large-v3 | `ggml-large-v3.bin` | …/resolve/main/ggml-large-v3.bin | 3.1 GB | `64d182b440b98d5203c4f9bd541544d84c605196c4f7b845dfa11fb23594d1e2` |
-| silero VAD | `ggml-silero-v5.1.2.bin` | huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin | 885 kB | `29940d98d42b91fbd05ce489f3ecf7c72f0a42f027e4875919a28fb4c04ea2cf` |
+| small | `ggml-small.bin` | huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin | 487,601,967 B | `1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b` |
+| medium | `ggml-medium.bin` | …/resolve/main/ggml-medium.bin | 1,533,763,059 B | `6c14d5adee5f86394037b4e4e8b59f1673b6cee10e3cf0b11bbdbee79c156208` |
+| large-v3 | `ggml-large-v3.bin` | …/resolve/main/ggml-large-v3.bin | 3,095,033,483 B | `64d182b440b98d5203c4f9bd541544d84c605196c4f7b845dfa11fb23594d1e2` |
+| silero VAD | `ggml-silero-v5.1.2.bin` | huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin | 885,098 B | `29940d98d42b91fbd05ce489f3ecf7c72f0a42f027e4875919a28fb4c04ea2cf` |
+
+> **Перепроверено 2026-06-09 (03-01 Task 3 автоматизация):** точные байтовые размеры взяты из live `X-Linked-Size` HuggingFace LFS-метаданных; SHA256 (`X-Linked-ETag`) сверены с манифестом — совпадают для small/medium/large-v3. Ранее `small` показывался как «488 MB (~511,705,088 B)» — это была ошибка пересчёта MB; реальный размер 487,601,967 B (SHA не менялся, контент идентичен). silero VAD: 885,098 B, доступен.
 
 > SHA256-значения взяты из HuggingFace Xet/LFS pointer-метаданных каждого файла [VERIFIED: huggingface.co blob-pages]. Это хэш содержимого файла — именно то, что считает `createHash('sha256')` после полного скачивания. **План ДОЛЖЕН добавить checkpoint:human-verify** перед закреплением: точные байтовые размеры small/medium/large-v3 (HF показывает округлённо в ГБ) и значения SHA уточнить повторным `curl -sI` + сверкой LFS pointer на момент реализации — upstream может перезалить файлы. download-скрипты upstream **НЕ содержат checksum-логики**, так что манифест ведём сами.
 
