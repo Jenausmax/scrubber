@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 3 context gathered
-last_updated: "2026-06-09T09:19:55.905Z"
-last_activity: 2026-06-09 -- Phase 3 planning complete
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-06-09T09:57:55.972Z"
+last_activity: 2026-06-09
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 13
-  completed_plans: 9
+  completed_plans: 10
   percent: 40
 ---
 
@@ -21,16 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-27)
 
 **Core value:** Превратить mp4-видео в качественный текстовый транскрипт (`.md`) — это обязано работать, даже если всё остальное отвалится.
-**Current focus:** Phase 3 — local-transcription (Core Value)
+**Current focus:** Phase 03 — local-transcription-core-value
 
 ## Current Position
 
-Phase: 2 (media-extraction-pipeline) — ✅ COMPLETE (verified 2026-06-08, Windows-таргет)
+Phase: 03 (local-transcription-core-value) — EXECUTING
+Plan: 2 of 4
 Next: Phase 3 (local-transcription) — discuss/plan
 Status: Ready to execute
-Last activity: 2026-06-09 -- Phase 3 planning complete
+Last activity: 2026-06-09
 
-Progress: [████░░░░░░] 40% (2/5 phases)
+Progress: [████████░░] 77%
 
 Note: MEDIA-04 (extraction на Linux/macOS) перенесён в v1.1 — нет host-машин (см. 02-UAT.md, 02-VERIFICATION.md).
 
@@ -54,6 +55,7 @@ Note: MEDIA-04 (extraction на Linux/macOS) перенесён в v1.1 — не
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 03 P01 | 35min | 3 tasks | 18 files |
 
 ## Accumulated Context
 
@@ -65,6 +67,8 @@ Recent decisions affecting current work:
 - [Roadmap]: Cloud-транскрипция и пресеты Claude/Gemini отложены в v2 — v1 не содержит этих фаз
 - [Roadmap]: Дистрибуция кросс-сквозная — packaged-build smoke-тест начинается с Phase 2, нотаризация macOS финализируется в Phase 5
 - [Research]: whisper.cpp как sidecar-бинарник (не native addon, не Python); провайдеры за интерфейсами Strategy+Registry
+- [Phase ?]: 03-01: non-BLAS сборка whisper.cpp v1.8.6 зафиксирована как есть (checkpoint approved)
+- [Phase ?]: 03-01: requirements плана = [TRANS-03] GREEN; TRANS-01/02/04/05/06/07 законтрактованы здесь, GREEN в 03-02/03/04
 
 ### Pending Todos
 
@@ -90,6 +94,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-08T20:08:21.631Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-local-transcription-core-value/03-CONTEXT.md
+Last session: 2026-06-09T09:57:55.965Z
+Stopped at: Completed 03-01-PLAN.md
+Resume file: None
