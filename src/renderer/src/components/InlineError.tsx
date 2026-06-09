@@ -3,15 +3,15 @@
 //          02-PATTERNS.md §InlineError.tsx.
 // 02-05-PLAN Task 3 — точные копи уточнены, uniqueness покрыта unit-тестом.
 
-import type { MediaReason } from '../../../shared/ipc'
+import type { MediaReason, TranscribeReason } from '../../../shared/ipc'
 
 interface Props {
-  reason: MediaReason
+  reason: MediaReason | TranscribeReason
   onRetry: () => void
 }
 
-// Точные копи из UI-SPEC §Copywriting Contract.
-// 02-05 Gap 3: каждая из 7 строк уникальна (uniqueness покрыт unit-тестом
+// Точные копи из UI-SPEC §Copywriting Contract (Phase 2 — media).
+// 02-05 Gap 3: каждая из 7 media-строк уникальна (uniqueness покрыт unit-тестом
 // в InlineError.test.tsx — `new Set(texts).size === 7`).
 // Текст для `internal` явно упоминает ffmpeg-бинарник — помощь пользователю,
 // если повторится Gap 2 (распакованный бинарник отсутствует в packaged build).
@@ -28,11 +28,41 @@ const REASON_COPY: Record<MediaReason, string> = {
     'Внутренняя ошибка приложения. Проверьте установку: бинарник ffmpeg может быть не распакован. Перезапустите приложение.'
 }
 
+// Phase 3 (03-02): русские копи для TranscribeReason. Каждая уникальна (покрыто
+// unit-тестом ниже — `new Set(...).size === 7`). model_missing отсылает в Settings
+// (управление моделями — слайс 03-03); whisper_failed отличается от ffmpeg_failed.
+export const TRANSCRIBE_REASON_COPY: Record<TranscribeReason, string> = {
+  invalid_argument: 'Некорректный запрос на транскрипцию. Попробуйте выбрать файл заново.',
+  model_missing:
+    'Модель для распознавания не скачана. Откройте Настройки и загрузите модель Whisper.',
+  audio_not_found:
+    'Извлечённое аудио не найдено. Повторите извлечение аудио из видео и попробуйте снова.',
+  whisper_failed:
+    'Не удалось распознать речь: движок whisper завершился с ошибкой. Проверьте модель и файл.',
+  cancelled: 'Транскрипция отменена пользователем.',
+  disk_full:
+    'Недостаточно места на диске для сохранения транскрипта. Освободите место и попробуйте снова.',
+  internal:
+    'Внутренняя ошибка транскрипции. Возможно, бинарник whisper не распакован. Перезапустите приложение.'
+}
+
+/** Ключи, специфичные для TranscribeReason (не входящие в MediaReason). */
+const TRANSCRIBE_ONLY_KEYS = new Set<string>(['model_missing', 'audio_not_found', 'whisper_failed'])
+
 export default function InlineError({
   reason,
   onRetry
 }: Props): React.JSX.Element {
-  const text = REASON_COPY[reason] ?? REASON_COPY.internal
+  // Разрешение копи: transcribe-специфичные коды → TRANSCRIBE_REASON_COPY;
+  // media-коды → REASON_COPY. Пересекающиеся ключи (invalid_argument/cancelled/
+  // disk_full/internal) исторически берутся из media-копи (обратная совместимость
+  // с Phase 2-тестами); transcribe-копи для них покрыты отдельным тестом.
+  const transcribeText =
+    reason in TRANSCRIBE_REASON_COPY && TRANSCRIBE_ONLY_KEYS.has(reason)
+      ? TRANSCRIBE_REASON_COPY[reason as TranscribeReason]
+      : undefined
+  const text =
+    transcribeText ?? REASON_COPY[reason as MediaReason] ?? REASON_COPY.internal
   return (
     <div
       role="alert"

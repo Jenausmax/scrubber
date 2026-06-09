@@ -18,13 +18,24 @@
 import { useEffect, useRef, useState } from 'react'
 import type {
   MediaProbeResult,
-  MediaReason
+  MediaReason,
+  TranscribeReason
 } from '../../../shared/ipc'
 import DropZone from '../components/DropZone'
 import FileMetaCard from '../components/FileMetaCard'
 import ExtractProgress from '../components/ExtractProgress'
 import ExtractDone from '../components/ExtractDone'
+import TranscriptResult from '../components/TranscriptResult'
 import InlineError from '../components/InlineError'
+
+// Дефолтная модель ядра ценности (03-02). Селектор языка/модели — слайс 03-04/03-03.
+const DEFAULT_MODEL = 'medium'
+const DEFAULT_LANGUAGE = 'ru'
+
+interface TranscribeSegment {
+  startMs: number
+  text: string
+}
 
 type State =
   | { kind: 'idle' }
@@ -40,6 +51,16 @@ type State =
       etaSec: number | null
     }
   | { kind: 'done'; audioPath: string; cacheHit: boolean }
+  // Phase 3 (03-02): транскрипция извлечённого WAV.
+  | {
+      kind: 'transcribing'
+      jobId: string | null
+      audioPath: string
+      percent: number
+      segments: TranscribeSegment[]
+    }
+  | { kind: 'transcript-done'; mdPath: string; text: string }
+  | { kind: 'transcript-error'; reason: TranscribeReason }
   | { kind: 'cancelled' }
   | { kind: 'error'; reason: MediaReason }
 
@@ -72,10 +93,73 @@ export default function Transcribe(): React.JSX.Element {
     return unsub
   }, [])
 
+  // Subscription на TRANSCRIBE_PROGRESS/SEGMENT — один раз на mount (зеркало media).
+  useEffect(() => {
+    const unsubProgress = window.scrubber.transcribe.onProgress((e) => {
+      const s = stateRef.current
+      if (s.kind !== 'transcribing') return
+      if (s.jobId === null || s.jobId === e.jobId) {
+        setState({
+          kind: 'transcribing',
+          jobId: e.jobId,
+          audioPath: s.audioPath,
+          percent: e.percent,
+          segments: s.segments
+        })
+      }
+    })
+    const unsubSegment = window.scrubber.transcribe.onSegment((e) => {
+      const s = stateRef.current
+      if (s.kind !== 'transcribing') return
+      if (s.jobId === null || s.jobId === e.jobId) {
+        setState({
+          ...s,
+          jobId: e.jobId,
+          segments: [...s.segments, { startMs: e.startMs, text: e.text }]
+        })
+      }
+    })
+    return () => {
+      unsubProgress()
+      unsubSegment()
+    }
+  }, [])
+
   function resetIdle(): void {
     setCancelledMsg(false)
     setCopied(false)
     setState({ kind: 'idle' })
+  }
+
+  async function handleTranscribe(): Promise<void> {
+    if (state.kind !== 'done') return
+    const { audioPath } = state
+    setState({ kind: 'transcribing', jobId: null, audioPath, percent: 0, segments: [] })
+    const r = await window.scrubber.transcribe.start(audioPath, {
+      model: DEFAULT_MODEL,
+      language: DEFAULT_LANGUAGE
+    })
+    if (r.ok && r.data) {
+      setState({ kind: 'transcript-done', mdPath: r.data.mdPath, text: r.data.text })
+      return
+    }
+    const reason = (!r.ok ? (r.reason as TranscribeReason) : 'internal') ?? 'internal'
+    if (reason === 'cancelled') {
+      setCancelledMsg(true)
+      setState({ kind: 'idle' })
+      return
+    }
+    setState({ kind: 'transcript-error', reason })
+  }
+
+  async function handleOpenTranscript(): Promise<void> {
+    if (state.kind !== 'transcript-done') return
+    await window.scrubber.transcribe.openFile(state.mdPath)
+  }
+
+  async function handleRevealTranscript(): Promise<void> {
+    if (state.kind !== 'transcript-done') return
+    await window.scrubber.transcribe.revealInFolder(state.mdPath)
   }
 
   async function handlePathSelected(path: string): Promise<void> {
@@ -215,15 +299,60 @@ export default function Transcribe(): React.JSX.Element {
       )}
 
       {state.kind === 'done' && (
-        <ExtractDone
-          audioPath={state.audioPath}
-          cacheHit={state.cacheHit}
-          onCopyPath={(): void => {
-            void handleCopyPath()
+        <div className="space-y-4">
+          <ExtractDone
+            audioPath={state.audioPath}
+            cacheHit={state.cacheHit}
+            onCopyPath={(): void => {
+              void handleCopyPath()
+            }}
+            onReset={resetIdle}
+            copied={copied}
+          />
+          <button
+            type="button"
+            onClick={(): void => {
+              void handleTranscribe()
+            }}
+            className="px-4 py-2 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Транскрибировать
+          </button>
+        </div>
+      )}
+
+      {state.kind === 'transcribing' && (
+        <div
+          role="status"
+          className="p-6 rounded-md border border-blue-200 bg-blue-50 text-blue-900"
+        >
+          <h2 className="text-lg font-medium mb-2">Распознаём речь…</h2>
+          <div className="w-full bg-blue-100 rounded h-2 mb-2 overflow-hidden">
+            <div
+              className="bg-blue-600 h-2 transition-all"
+              style={{ width: `${state.percent}%` }}
+            />
+          </div>
+          <p className="text-sm">{state.percent}%</p>
+        </div>
+      )}
+
+      {state.kind === 'transcript-done' && (
+        <TranscriptResult
+          mdPath={state.mdPath}
+          text={state.text}
+          onOpenFile={(): void => {
+            void handleOpenTranscript()
+          }}
+          onRevealInFolder={(): void => {
+            void handleRevealTranscript()
           }}
           onReset={resetIdle}
-          copied={copied}
         />
+      )}
+
+      {state.kind === 'transcript-error' && (
+        <InlineError reason={state.reason} onRetry={resetIdle} />
       )}
 
       {state.kind === 'error' && (

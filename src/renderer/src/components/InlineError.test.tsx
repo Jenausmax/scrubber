@@ -8,14 +8,25 @@
 
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
-import InlineError from './InlineError'
-import type { MediaReason } from '../../../shared/ipc'
+import InlineError, { TRANSCRIBE_REASON_COPY } from './InlineError'
+import type { MediaReason, TranscribeReason } from '../../../shared/ipc'
 
 const ALL_REASONS: MediaReason[] = [
   'invalid_argument',
   'not_mp4',
   'file_not_found',
   'ffmpeg_failed',
+  'cancelled',
+  'disk_full',
+  'internal'
+]
+
+// Все 7 TranscribeReason-кодов (03-02). Каждая копи обязана быть уникальной и на русском.
+const ALL_TRANSCRIBE_REASONS: TranscribeReason[] = [
+  'invalid_argument',
+  'model_missing',
+  'audio_not_found',
+  'whisper_failed',
   'cancelled',
   'disk_full',
   'internal'
@@ -81,5 +92,33 @@ describe('InlineError — REASON_COPY (Gap 3 closure)', () => {
       expect(t).not.toBe(cancelledText)
       unmount()
     }
+  })
+})
+
+describe('InlineError — TRANSCRIBE_REASON_COPY (03-02 TranscribeReason)', () => {
+  it('все 7 TranscribeReason-копий уникальны (new Set(...).size === 7)', () => {
+    const texts = new Set(Object.values(TRANSCRIBE_REASON_COPY))
+    expect(texts.size).toBe(ALL_TRANSCRIBE_REASONS.length)
+    expect(ALL_TRANSCRIBE_REASONS.length).toBe(7)
+  })
+
+  it('каждая TranscribeReason-копи непустая и содержит кириллицу', () => {
+    for (const reason of ALL_TRANSCRIBE_REASONS) {
+      const copy = TRANSCRIBE_REASON_COPY[reason]
+      expect(copy.length).toBeGreaterThanOrEqual(10)
+      expect(/[а-яА-ЯёЁ]/.test(copy)).toBe(true)
+    }
+  })
+
+  it('model_missing рендерит копи со ссылкой на Настройки', () => {
+    render(<InlineError reason="model_missing" onRetry={vi.fn()} />)
+    const message = screen.getByRole('alert').querySelector('p')?.textContent ?? ''
+    expect(message).toMatch(/Настройк/i)
+  })
+
+  it('whisper_failed рендерит транскрипт-специфичную копи (не ffmpeg)', () => {
+    render(<InlineError reason="whisper_failed" onRetry={vi.fn()} />)
+    const message = screen.getByRole('alert').querySelector('p')?.textContent ?? ''
+    expect(message).toMatch(/whisper/i)
   })
 })

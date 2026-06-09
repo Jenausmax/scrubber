@@ -28,6 +28,17 @@ interface MediaMock {
   __getLastCb: () => ProgressCb | null
 }
 
+interface TranscribeMock {
+  start: ReturnType<typeof vi.fn>
+  cancel: ReturnType<typeof vi.fn>
+  openFile: ReturnType<typeof vi.fn>
+  revealInFolder: ReturnType<typeof vi.fn>
+  onProgress: ReturnType<typeof vi.fn>
+  onSegment: ReturnType<typeof vi.fn>
+}
+
+let transcribeMock: TranscribeMock
+
 function installScrubberMock(): MediaMock {
   let lastCb: ProgressCb | null = null
   const media: MediaMock = {
@@ -43,6 +54,14 @@ function installScrubberMock(): MediaMock {
     }),
     __getLastCb: () => lastCb
   }
+  transcribeMock = {
+    start: vi.fn(),
+    cancel: vi.fn().mockResolvedValue({ ok: true }),
+    openFile: vi.fn().mockResolvedValue({ ok: true }),
+    revealInFolder: vi.fn().mockResolvedValue({ ok: true }),
+    onProgress: vi.fn(() => (): void => {}),
+    onSegment: vi.fn(() => (): void => {})
+  }
   const scrubber: Partial<ScrubberApi> = {
     media: {
       pickFile: media.pickFile,
@@ -50,6 +69,16 @@ function installScrubberMock(): MediaMock {
       extractAudio: media.extractAudio,
       cancel: media.cancel,
       onProgress: media.onProgress
+    },
+    transcribe: {
+      start: transcribeMock.start,
+      cancel: transcribeMock.cancel,
+      // saveAs — заглушка в контракте; в 03-02 из UI не вызывается.
+      saveAs: vi.fn().mockResolvedValue({ ok: true, data: null }),
+      openFile: transcribeMock.openFile,
+      revealInFolder: transcribeMock.revealInFolder,
+      onProgress: transcribeMock.onProgress,
+      onSegment: transcribeMock.onSegment
     },
     // 02-05 Gap 1: DropZone теперь читает путь через window.scrubber.getPathForFile.
     // В тестах берём path из File.__path, который ставит mp4File/txtFile.
@@ -64,6 +93,27 @@ function installScrubberMock(): MediaMock {
     writable: true
   })
   return media
+}
+
+/** Прогнать FSM до состояния `done` (extract успешен) — общий префикс transcribe-тестов. */
+async function driveToDone(mock: MediaMock): Promise<void> {
+  mock.probe.mockResolvedValue({
+    ok: true,
+    data: { durationSec: 60, sizeBytes: 1_000_000, name: 'test.mp4' }
+  })
+  mock.extractAudio.mockResolvedValue({
+    ok: true,
+    data: { jobId: 'j1', audioPath: 'C:\\extracted\\abc.wav' }
+  })
+  render(<Transcribe />)
+  dropFiles(
+    screen.getByRole('region', { name: /зона перетаскивания/i }),
+    [mp4File('test.mp4', 'C:\\test.mp4')]
+  )
+  await waitFor(() => screen.getByText('Файл готов к извлечению'))
+  const user = userEvent.setup()
+  await user.click(screen.getByRole('button', { name: 'Извлечь аудио' }))
+  await waitFor(() => screen.getByText('Аудио извлечено'))
 }
 
 function mp4File(name: string, path: string): File {
@@ -249,5 +299,82 @@ describe('Transcribe FSM', () => {
       expect(screen.getByText('Аудио извлечено')).toBeTruthy()
     })
     expect(screen.getByText(/abc\.wav/)).toBeTruthy()
+  })
+})
+
+describe('Transcribe FSM — транскрипция (03-02 ядро ценности)', () => {
+  it('после extract-done показывает кнопку «Транскрибировать»', async () => {
+    await driveToDone(mock)
+    expect(screen.getByRole('button', { name: 'Транскрибировать' })).toBeTruthy()
+  })
+
+  it('клик «Транскрибировать» вызывает scrubber.transcribe.start с medium/ru', async () => {
+    // start не резолвим → остаёмся в transcribing
+    transcribeMock.start.mockReturnValue(new Promise(() => {}))
+    await driveToDone(mock)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Транскрибировать' }))
+    expect(transcribeMock.start).toHaveBeenCalledWith('C:\\extracted\\abc.wav', {
+      model: 'medium',
+      language: 'ru'
+    })
+    expect(screen.getByText(/Распознаём речь/i)).toBeTruthy()
+  })
+
+  it('по resolve transcript-done рендерит TranscriptResult с текстом и кнопками', async () => {
+    transcribeMock.start.mockResolvedValue({
+      ok: true,
+      data: {
+        jobId: 't1',
+        mdPath: 'C:\\transcripts\\abc.transcript.md',
+        text: '---\nsource: test.mp4\n---\n\n# test.mp4\n\nПривет мир',
+        segments: [{ startMs: 0, text: 'Привет мир' }]
+      }
+    })
+    await driveToDone(mock)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Транскрибировать' }))
+    await waitFor(() => expect(screen.getByText('Транскрипт готов')).toBeTruthy())
+    expect(screen.getByText(/Привет мир/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Открыть файл' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Показать в папке' })).toBeTruthy()
+  })
+
+  it('«Открыть файл» вызывает transcribe.openFile с mdPath', async () => {
+    transcribeMock.start.mockResolvedValue({
+      ok: true,
+      data: {
+        jobId: 't1',
+        mdPath: 'C:\\transcripts\\abc.transcript.md',
+        text: 'текст',
+        segments: []
+      }
+    })
+    await driveToDone(mock)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Транскрибировать' }))
+    await waitFor(() => screen.getByText('Транскрипт готов'))
+    await user.click(screen.getByRole('button', { name: 'Открыть файл' }))
+    expect(transcribeMock.openFile).toHaveBeenCalledWith('C:\\transcripts\\abc.transcript.md')
+  })
+
+  it('whisper_failed → InlineError с транскрипт-копи', async () => {
+    transcribeMock.start.mockResolvedValue({ ok: false, reason: 'whisper_failed' })
+    await driveToDone(mock)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Транскрибировать' }))
+    await waitFor(() => {
+      expect(screen.getByText(/whisper завершился с ошибкой/i)).toBeTruthy()
+    })
+  })
+
+  it('model_missing → InlineError со ссылкой на Настройки', async () => {
+    transcribeMock.start.mockResolvedValue({ ok: false, reason: 'model_missing' })
+    await driveToDone(mock)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Транскрибировать' }))
+    await waitFor(() => {
+      expect(screen.getByText(/Настройк/i)).toBeTruthy()
+    })
   })
 })

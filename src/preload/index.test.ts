@@ -44,7 +44,7 @@ describe('preload/index — contextBridge bridge', () => {
     restoreContextIsolated()
   })
 
-  it('экспонирует namespaces settings/media + getPathForFile (allow-list), settings содержит 4 функции', async () => {
+  it('экспонирует namespaces settings/media/transcribe/models + getPathForFile (allow-list), settings содержит 4 функции', async () => {
     const electron = await import('electron')
     const spy = electron.contextBridge.exposeInMainWorld as ReturnType<typeof vi.fn>
     spy.mockClear()
@@ -53,8 +53,9 @@ describe('preload/index — contextBridge bridge', () => {
 
     const bridge = spy.mock.calls[0][1] as Record<string, unknown>
     // 02-05 Gap 1: top-level `getPathForFile` (Electron 32+ webUtils-bridge).
+    // Phase 3 (03-01/03-02): добавлены namespaces transcribe + models.
     expect(Object.keys(bridge).sort()).toEqual(
-      ['getPathForFile', 'media', 'settings'].sort()
+      ['getPathForFile', 'media', 'models', 'settings', 'transcribe'].sort()
     )
     expect(typeof bridge.getPathForFile).toBe('function')
 
@@ -86,7 +87,9 @@ describe('preload/index — contextBridge bridge', () => {
     restoreContextIsolated()
   })
 
-  it('НЕ содержит запрещённых namespaces (transcribe/llm/api/electron/ipcRenderer)', async () => {
+  it('НЕ содержит запрещённых namespaces (llm/api/electron/ipcRenderer)', async () => {
+    // Phase 3: transcribe больше НЕ запрещён — он легитимно экспонирован (03-01/03-02).
+    // llm придёт в Phase 4; api/electron/ipcRenderer — навсегда запрещены (D-14).
     const electron = await import('electron')
     const spy = electron.contextBridge.exposeInMainWorld as ReturnType<typeof vi.fn>
     spy.mockClear()
@@ -94,7 +97,7 @@ describe('preload/index — contextBridge bridge', () => {
     await import('./index')
 
     const bridge = spy.mock.calls[0][1] as Record<string, unknown>
-    for (const forbidden of ['transcribe', 'llm', 'api', 'electron', 'ipcRenderer']) {
+    for (const forbidden of ['llm', 'api', 'electron', 'ipcRenderer']) {
       expect(bridge[forbidden]).toBeUndefined()
     }
     restoreContextIsolated()
