@@ -6,10 +6,12 @@
 import { registerSettingsHandlers } from './settings'
 import { registerMediaHandlers } from './media'
 import { registerTranscribeHandlers } from './transcribe'
+import { registerModelsHandlers } from './models'
 
 export function registerIpcHandlers(): void {
   registerSettingsHandlers()
   registerMediaHandlers()
   registerTranscribeHandlers() // Phase 3 — transcribe.* (ядро ценности)
+  registerModelsHandlers() // Phase 3 — models.* (управление моделями, TRANS-02)
   // future: registerLlmHandlers() — Phase 4
 }
