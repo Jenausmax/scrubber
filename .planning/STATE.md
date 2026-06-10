@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-06-09T09:57:55.972Z"
-last_activity: 2026-06-09
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-06-10T12:24:07.913Z"
+last_activity: 2026-06-10
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 13
-  completed_plans: 10
-  percent: 40
+  completed_plans: 11
+  percent: 85
 ---
 
 # Project State
@@ -26,12 +26,12 @@ See: .planning/PROJECT.md (updated 2026-05-27)
 ## Current Position
 
 Phase: 03 (local-transcription-core-value) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Next: Phase 3 (local-transcription) — discuss/plan
 Status: Ready to execute
-Last activity: 2026-06-09
+Last activity: 2026-06-10
 
-Progress: [████████░░] 77%
+Progress: [█████████░] 85%
 
 Note: MEDIA-04 (extraction на Linux/macOS) перенесён в v1.1 — нет host-машин (см. 02-UAT.md, 02-VERIFICATION.md).
 
@@ -56,6 +56,7 @@ Note: MEDIA-04 (extraction на Linux/macOS) перенесён в v1.1 — не
 
 *Updated after each plan completion*
 | Phase 03 P01 | 35min | 3 tasks | 18 files |
+| Phase 03 P02 | 12min | 3 tasks | 19 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ Recent decisions affecting current work:
 - [Research]: whisper.cpp как sidecar-бинарник (не native addon, не Python); провайдеры за интерфейсами Strategy+Registry
 - [Phase ?]: 03-01: non-BLAS сборка whisper.cpp v1.8.6 зафиксирована как есть (checkpoint approved)
 - [Phase ?]: 03-01: requirements плана = [TRANS-03] GREEN; TRANS-01/02/04/05/06/07 законтрактованы здесь, GREEN в 03-02/03/04
+- [Phase ?]: 03-02: ядро ценности (mp4→transcript.md офлайн) подтверждено на UAT — milestone gate пройден
+- [Phase ?]: 03-02: dev-сборка .cjs-утилит чинится через predev-хук + emptyOutDir:false (root-cause Phase 2 dev-wiring gap)
 
 ### Pending Todos
 
@@ -83,6 +86,7 @@ None yet.
 - [Phase 3]: VAD-параметры whisper.cpp для русского и on-demand download large-v3 (~3 ГБ) — нужен углублённый ресёрч
 - [Phase 4]: Стратегия overflow длинного транскрипта (chunking vs truncate) не зафиксирована — решить при планировании
 - [Phase 5]: macOS-нотаризация со всеми вложенными бинарниками — длинный хвост, нужен реальный macOS CI-раннер
+- [Phase 2/03-04]: dev-режим utilityProcess.fork не покрывался smoke-тестом (только packaged) — dev .cjs-сборка чинилась predev+emptyOutDir в 03-02; учесть в 03-04 build/smoke и Phase 2 retro
 
 ## Deferred Items
 
@@ -94,6 +98,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-09T09:57:55.965Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-06-10T12:21:58.298Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None

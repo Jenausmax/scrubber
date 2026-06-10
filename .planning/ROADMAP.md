@@ -97,7 +97,7 @@ Plans:
   4. Пользователь видит прогресс транскрипции в реальном времени, может её отменить, и UI не зависает во время длительной обработки
   5. Готовый транскрипт сохраняется в `.md`-файл, который пользователь может открыть
 
-**Plans:** 1/4 plans executed
+**Plans:** 2/4 plans executed
 Plans:
 
 **Wave 1**
@@ -106,7 +106,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 03-02-PLAN.md — ЯДРО ЦЕННОСТИ: офлайн mp4→transcript.md (whisper-runner + transcriber + transcript-builder + минимальный renderer-слайс) (Wave 2)
+- [x] 03-02-PLAN.md — ЯДРО ЦЕННОСТИ: офлайн mp4→transcript.md (whisper-runner + transcriber + transcript-builder + минимальный renderer-слайс) (Wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -158,6 +158,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Foundation & App Shell | 4/4 | Complete   | 2026-05-30 |
 | 2. Media Extraction Pipeline | 6/6 | Complete (Windows; Linux/macOS→v1.1) | 2026-06-08 |
-| 3. Local Transcription (Core Value) | 1/4 | In Progress|  |
+| 3. Local Transcription (Core Value) | 2/4 | In Progress|  |
 | 4. LLM Analysis & Prompt Library | 0/TBD | Not started | - |
 | 5. Distribution & Cross-Platform | 0/TBD | Not started | - |

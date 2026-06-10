@@ -22,13 +22,13 @@
 
 ### Transcription (Транскрипция)
 
-- [ ] **TRANS-01**: Пользователь может транскрибировать аудио локально через whisper.cpp на своей машине (офлайн)
+- [x] **TRANS-01**: Пользователь может транскрибировать аудио локально через whisper.cpp на своей машине (офлайн)
 - [ ] **TRANS-02**: Пользователь может выбрать модель Whisper и скачать её по запросу (модели не бандлятся)
 - [x] **TRANS-03**: Транскрипция по умолчанию использует русский язык (`language=ru`) с VAD
 - [ ] **TRANS-04**: Пользователь видит прогресс транскрипции в реальном времени
 - [ ] **TRANS-05**: Пользователь может отменить идущую транскрипцию (Cancel)
-- [ ] **TRANS-06**: UI не зависает во время длительной транскрипции
-- [ ] **TRANS-07**: Транскрипт сохраняется в `.md`-файл, который пользователь может открыть
+- [x] **TRANS-06**: UI не зависает во время длительной транскрипции
+- [x] **TRANS-07**: Транскрипт сохраняется в `.md`-файл, который пользователь может открыть
 
 ### Analysis (Анализ через LLM)
 
@@ -93,13 +93,13 @@
 | MEDIA-02 | Phase 2 | Pending |
 | MEDIA-03 | Phase 2 | Pending |
 | MEDIA-04 | Phase 2 | Pending |
-| TRANS-01 | Phase 3 | Pending |
+| TRANS-01 | Phase 3 | Complete |
 | TRANS-02 | Phase 3 | Pending |
 | TRANS-03 | Phase 3 | Complete |
 | TRANS-04 | Phase 3 | Pending |
 | TRANS-05 | Phase 3 | Pending |
-| TRANS-06 | Phase 3 | Pending |
-| TRANS-07 | Phase 3 | Pending |
+| TRANS-06 | Phase 3 | Complete |
+| TRANS-07 | Phase 3 | Complete |
 | ANLZ-01 | Phase 4 | Pending |
 | ANLZ-02 | Phase 4 | Pending |
 | ANLZ-03 | Phase 4 | Pending |
