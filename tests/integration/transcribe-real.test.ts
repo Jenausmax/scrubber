@@ -105,9 +105,16 @@ describe('transcribe-real (TRANS-01, gated)', () => {
       const jsonPath = `${TMP_WAV}.json`
       expect(existsSync(jsonPath)).toBe(true)
       const parsed = JSON.parse(await fs.readFile(jsonPath, 'utf8')) as {
-        transcription?: unknown
+        transcription?: { text?: string }[]
       }
       expect(Array.isArray(parsed.transcription)).toBe(true)
+      // Acceptance: ≥1 сегмент с непустым текстом (реальная транскрипция, TRANS-01).
+      const segments = parsed.transcription ?? []
+      expect(segments.length).toBeGreaterThanOrEqual(1)
+      const nonEmpty = segments.filter(
+        (s) => typeof s.text === 'string' && s.text.trim().length > 0
+      )
+      expect(nonEmpty.length).toBeGreaterThanOrEqual(1)
     },
     120_000
   )
