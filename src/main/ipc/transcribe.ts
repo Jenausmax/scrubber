@@ -7,16 +7,18 @@
 //   - ipcMain.handle: TRANSCRIBE_START / CANCEL / OPEN / REVEAL.
 //   - TRANSCRIBE_PROGRESS/SEGMENT НЕ регистрируются через handle — event-каналы шлёт
 //     transcriber через webContents.send.
-//   - TRANSCRIBE_SAVE_AS НЕ регистрируется здесь — он реализуется в 03-04.
+//   - TRANSCRIBE_SAVE_AS (03-04): saveAs(md) — defaultName формирует MAIN из
+//     transcriber.getCurrentAudioPath() (basename + '.transcript.md'), НЕ из renderer
+//     (T-3-06, warning-5). Путь записи — ТОЛЬКО из dialog.showSaveDialog. md-контент — текст.
 //   - Defence-in-depth (T-3-03): audioPath — string + isAbsolute + fs.access R_OK
 //     (→ audio_not_found). model — whitelist; language — непустая строка.
 //   - TRANSCRIBE_CANCEL: UUID-regex перед transcriber.cancel.
 //   - TRANSCRIBE_OPEN/REVEAL: shell только для сгенерированного нами mdPath (T-3-06).
 //   - Reason-коды строго из TranscribeReason. Никаких throw через IPC (Pitfall #7).
 
-import { ipcMain, shell } from 'electron'
+import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { promises as fs, constants as fsc } from 'node:fs'
-import { isAbsolute } from 'node:path'
+import { basename, isAbsolute } from 'node:path'
 import {
   Channels,
   type Result,
@@ -94,6 +96,44 @@ export function registerTranscribeHandlers(): void {
       } catch (err: unknown) {
         // eslint-disable-next-line no-console
         console.error(`${LOG_PREFIX} cancel internal error:`, err)
+        return { ok: false, reason: 'internal' }
+      }
+    }
+  )
+
+  // TRANSCRIBE_SAVE_AS — экспорт .md через системный диалог (D-05, TRANS-07, T-3-06).
+  //   - принимает ТОЛЬКО md-контент (string); имя файла из renderer ИГНОРИРУЕТСЯ;
+  //   - defaultName формирует MAIN: basename(transcriber.getCurrentAudioPath()) + '.transcript.md';
+  //   - путь записи берётся ТОЛЬКО из dialog.showSaveDialog (доверенный);
+  //   - отмена диалога → Result<null>; успех → Result<{path}>.
+  ipcMain.handle(
+    Channels.TRANSCRIBE_SAVE_AS,
+    async (event, ...args: unknown[]): Promise<Result<{ path: string } | null>> => {
+      try {
+        const md = args[0]
+        if (typeof md !== 'string') {
+          return { ok: false, reason: 'invalid_argument' }
+        }
+        // defaultName формирует main из audioPath (НЕ из renderer-строки args[1]).
+        const audioPath = transcriber.getCurrentAudioPath()
+        const base = audioPath ? basename(audioPath) : 'transcript'
+        const defaultName = `${base}.transcript.md`
+
+        const win = BrowserWindow.fromWebContents(event.sender)
+        if (!win) return { ok: false, reason: 'internal' }
+        const res = await dialog.showSaveDialog(win, {
+          defaultPath: defaultName,
+          filters: [{ name: 'Markdown', extensions: ['md'] }]
+        })
+        if (res.canceled || !res.filePath) {
+          return { ok: true, data: null }
+        }
+        // Путь — ТОЛЬКО из dialog-результата (T-3-06).
+        await fs.writeFile(res.filePath, md, 'utf8')
+        return { ok: true, data: { path: res.filePath } }
+      } catch (err: unknown) {
+        // eslint-disable-next-line no-console
+        console.error(`${LOG_PREFIX} saveAs internal error:`, err)
         return { ok: false, reason: 'internal' }
       }
     }

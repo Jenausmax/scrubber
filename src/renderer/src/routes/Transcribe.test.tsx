@@ -28,13 +28,19 @@ interface MediaMock {
   __getLastCb: () => ProgressCb | null
 }
 
+type TProgressCb = (e: { jobId: string; percent: number }) => void
+type TSegmentCb = (e: { jobId: string; startMs: number; text: string }) => void
+
 interface TranscribeMock {
   start: ReturnType<typeof vi.fn>
   cancel: ReturnType<typeof vi.fn>
+  saveAs: ReturnType<typeof vi.fn>
   openFile: ReturnType<typeof vi.fn>
   revealInFolder: ReturnType<typeof vi.fn>
   onProgress: ReturnType<typeof vi.fn>
   onSegment: ReturnType<typeof vi.fn>
+  __getProgressCb: () => TProgressCb | null
+  __getSegmentCb: () => TSegmentCb | null
 }
 
 let transcribeMock: TranscribeMock
@@ -54,13 +60,28 @@ function installScrubberMock(): MediaMock {
     }),
     __getLastCb: () => lastCb
   }
+  let tProgressCb: TProgressCb | null = null
+  let tSegmentCb: TSegmentCb | null = null
   transcribeMock = {
     start: vi.fn(),
     cancel: vi.fn().mockResolvedValue({ ok: true }),
+    saveAs: vi.fn().mockResolvedValue({ ok: true, data: { path: 'C:\\out\\test.transcript.md' } }),
     openFile: vi.fn().mockResolvedValue({ ok: true }),
     revealInFolder: vi.fn().mockResolvedValue({ ok: true }),
-    onProgress: vi.fn(() => (): void => {}),
-    onSegment: vi.fn(() => (): void => {})
+    onProgress: vi.fn((cb: TProgressCb) => {
+      tProgressCb = cb
+      return (): void => {
+        tProgressCb = null
+      }
+    }),
+    onSegment: vi.fn((cb: TSegmentCb) => {
+      tSegmentCb = cb
+      return (): void => {
+        tSegmentCb = null
+      }
+    }),
+    __getProgressCb: () => tProgressCb,
+    __getSegmentCb: () => tSegmentCb
   }
   const scrubber: Partial<ScrubberApi> = {
     // Phase 3 (03-03): Transcribe загружает настройки + список моделей на mount.
@@ -100,8 +121,7 @@ function installScrubberMock(): MediaMock {
     transcribe: {
       start: transcribeMock.start,
       cancel: transcribeMock.cancel,
-      // saveAs — заглушка в контракте; в 03-02 из UI не вызывается.
-      saveAs: vi.fn().mockResolvedValue({ ok: true, data: null }),
+      saveAs: transcribeMock.saveAs,
       openFile: transcribeMock.openFile,
       revealInFolder: transcribeMock.revealInFolder,
       onProgress: transcribeMock.onProgress,
@@ -402,6 +422,130 @@ describe('Transcribe FSM — транскрипция (03-02 ядро ценно
     await user.click(screen.getByRole('button', { name: 'Транскрибировать' }))
     await waitFor(() => {
       expect(screen.getByText(/Настройк/i)).toBeTruthy()
+    })
+  })
+
+  it('onSegment-события аппендят сегменты в стриминг-область во время transcribing (TRANS-04/D-11)', async () => {
+    transcribeMock.start.mockReturnValue(new Promise(() => {}))
+    await driveToDone(mock)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Транскрибировать' }))
+    // jobId привязывается первым событием (null → e.jobId).
+    const segCb = transcribeMock.__getSegmentCb()
+    expect(segCb).not.toBeNull()
+    act(() => {
+      segCb?.({ jobId: 'tj1', startMs: 0, text: 'Первый сегмент' })
+      segCb?.({ jobId: 'tj1', startMs: 1500, text: 'Второй сегмент' })
+    })
+    expect(screen.getByText('Первый сегмент')).toBeTruthy()
+    expect(screen.getByText('Второй сегмент')).toBeTruthy()
+  })
+
+  it('onProgress двигает %-бар во время transcribing (TRANS-04/D-11)', async () => {
+    transcribeMock.start.mockReturnValue(new Promise(() => {}))
+    await driveToDone(mock)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Транскрибировать' }))
+    const progCb = transcribeMock.__getProgressCb()
+    expect(progCb).not.toBeNull()
+    act(() => {
+      progCb?.({ jobId: 'tj1', percent: 42 })
+    })
+    const bar = screen.getByRole('progressbar', { name: /распознавания/i })
+    expect(bar.getAttribute('aria-valuenow')).toBe('42')
+  })
+
+  it('Cancel во время transcribing вызывает transcribe.cancel и предлагает сохранить частичное (TRANS-05/D-13)', async () => {
+    // start резолвится cancelled ПОСЛЕ того как мы накопили сегменты и нажали Отменить.
+    let resolveStart: (v: unknown) => void = () => {}
+    transcribeMock.start.mockReturnValue(
+      new Promise((res) => {
+        resolveStart = res
+      })
+    )
+    await driveToDone(mock)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Транскрибировать' }))
+    const segCb = transcribeMock.__getSegmentCb()
+    act(() => {
+      segCb?.({ jobId: 'tj1', startMs: 0, text: 'Частичный текст' })
+    })
+    await user.click(screen.getByRole('button', { name: 'Отменить' }))
+    expect(transcribeMock.cancel).toHaveBeenCalledWith('tj1')
+    // backend резолвит cancelled.
+    await act(async () => {
+      resolveStart({ ok: false, reason: 'cancelled' })
+    })
+    await waitFor(() => expect(screen.getByText('Транскрипция отменена')).toBeTruthy())
+    await user.click(screen.getByRole('button', { name: 'Сохранить частичное' }))
+    expect(transcribeMock.saveAs).toHaveBeenCalled()
+    // md-контент содержит накопленный частичный текст; имя файла НЕ передаётся из renderer.
+    expect(transcribeMock.saveAs.mock.calls[0][0]).toContain('Частичный текст')
+    expect(transcribeMock.saveAs.mock.calls[0].length).toBe(1)
+  })
+
+  it('тумблер таймкодов пересобирает текст БЕЗ повторного transcribe.start (D-02)', async () => {
+    transcribeMock.start.mockResolvedValue({
+      ok: true,
+      data: {
+        jobId: 't1',
+        mdPath: 'C:\\transcripts\\abc.transcript.md',
+        text: '---\nsource: test.mp4\n---\n\n# test.mp4\n\nПривет мир',
+        segments: [
+          { startMs: 0, text: 'Привет' },
+          { startMs: 5000, text: 'мир' }
+        ]
+      }
+    })
+    await driveToDone(mock)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Транскрибировать' }))
+    await waitFor(() => screen.getByText('Транскрипт готов'))
+    expect(transcribeMock.start).toHaveBeenCalledTimes(1)
+    // OFF: сплошной текст.
+    expect(screen.getByText('Привет мир')).toBeTruthy()
+    // Включаем таймкоды.
+    await user.click(screen.getByRole('checkbox', { name: /таймкоды/i }))
+    expect(screen.getByText(/\[00:00:00\] Привет/)).toBeTruthy()
+    expect(screen.getByText(/\[00:00:05\] мир/)).toBeTruthy()
+    // re-run НЕ происходит.
+    expect(transcribeMock.start).toHaveBeenCalledTimes(1)
+  })
+
+  it('«Сохранить как» вызывает transcribe.saveAs с md-контентом и БЕЗ имени из renderer (D-05)', async () => {
+    transcribeMock.start.mockResolvedValue({
+      ok: true,
+      data: {
+        jobId: 't1',
+        mdPath: 'C:\\transcripts\\abc.transcript.md',
+        text: '---\nsource: test.mp4\n---\n\n# test.mp4\n\nПривет мир',
+        segments: [{ startMs: 0, text: 'Привет мир' }]
+      }
+    })
+    await driveToDone(mock)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Транскрибировать' }))
+    await waitFor(() => screen.getByText('Транскрипт готов'))
+    await user.click(screen.getByRole('button', { name: 'Сохранить как' }))
+    expect(transcribeMock.saveAs).toHaveBeenCalledTimes(1)
+    const call = transcribeMock.saveAs.mock.calls[0]
+    expect(typeof call[0]).toBe('string')
+    expect(call[0]).toContain('Привет мир')
+    // имя файла НЕ передаётся из renderer (main формирует defaultName).
+    expect(call.length).toBe(1)
+  })
+
+  it('селектор языка меняет language и передаёт его в transcribe.start (TRANS-03/D-14)', async () => {
+    transcribeMock.start.mockReturnValue(new Promise(() => {}))
+    await driveToDone(mock)
+    const user = userEvent.setup()
+    const select = screen.getByLabelText('Язык') as HTMLSelectElement
+    await user.selectOptions(select, 'en')
+    expect(window.scrubber.settings.setPreference).toHaveBeenCalledWith('selectedLanguage', 'en')
+    await user.click(screen.getByRole('button', { name: 'Транскрибировать' }))
+    expect(transcribeMock.start).toHaveBeenCalledWith('C:\\extracted\\abc.wav', {
+      model: 'medium',
+      language: 'en'
     })
   })
 

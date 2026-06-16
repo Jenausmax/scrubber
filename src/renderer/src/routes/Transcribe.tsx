@@ -25,12 +25,24 @@ import DropZone from '../components/DropZone'
 import FileMetaCard from '../components/FileMetaCard'
 import ExtractProgress from '../components/ExtractProgress'
 import ExtractDone from '../components/ExtractDone'
+import TranscribeProgress from '../components/TranscribeProgress'
 import TranscriptResult from '../components/TranscriptResult'
 import InlineError from '../components/InlineError'
+import { buildDisplayText } from '../lib/transcript-display'
 
 // Дефолты на случай, если getPreferences ещё не загрузился (D-08/D-02).
 const DEFAULT_MODEL = 'medium'
 const DEFAULT_LANGUAGE = 'ru'
+
+// Языки селектора (D-14): ru по умолчанию + auto + частые.
+const LANGUAGE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'ru', label: 'Русский' },
+  { value: 'auto', label: 'Автоопределение' },
+  { value: 'en', label: 'Английский' },
+  { value: 'de', label: 'Немецкий' },
+  { value: 'fr', label: 'Французский' },
+  { value: 'es', label: 'Испанский' }
+]
 
 interface TranscribeSegment {
   startMs: number
@@ -59,7 +71,14 @@ type State =
       percent: number
       segments: TranscribeSegment[]
     }
-  | { kind: 'transcript-done'; mdPath: string; text: string }
+  | {
+      kind: 'transcript-done'
+      mdPath: string
+      text: string
+      segments: TranscribeSegment[]
+    }
+  // D-13: транскрипция отменена, но накопленные сегменты ценны — предлагаем сохранить.
+  | { kind: 'transcript-cancelled-partial'; segments: TranscribeSegment[] }
   | { kind: 'transcript-error'; reason: TranscribeReason }
   | { kind: 'cancelled' }
   | { kind: 'error'; reason: MediaReason }
@@ -73,6 +92,8 @@ export default function Transcribe(): React.JSX.Element {
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL)
   const [selectedLanguage, setSelectedLanguage] = useState(DEFAULT_LANGUAGE)
   const [modelAvailable, setModelAvailable] = useState<boolean | null>(null)
+  // D-02: дефолт тумблера таймкодов из settings-store (false по умолчанию).
+  const [timecodesEnabled, setTimecodesEnabled] = useState(false)
   // Храним актуальный state в ref для onProgress-handler'а, который замыкает
   // первое значение setState через useEffect.
   const stateRef = useRef<State>(state)
@@ -101,28 +122,24 @@ export default function Transcribe(): React.JSX.Element {
   // Subscription на TRANSCRIBE_PROGRESS/SEGMENT — один раз на mount (зеркало media).
   useEffect(() => {
     const unsubProgress = window.scrubber.transcribe.onProgress((e) => {
-      const s = stateRef.current
-      if (s.kind !== 'transcribing') return
-      if (s.jobId === null || s.jobId === e.jobId) {
-        setState({
-          kind: 'transcribing',
-          jobId: e.jobId,
-          audioPath: s.audioPath,
-          percent: e.percent,
-          segments: s.segments
-        })
-      }
+      setState((prev) => {
+        if (prev.kind !== 'transcribing') return prev
+        if (prev.jobId !== null && prev.jobId !== e.jobId) return prev
+        return { ...prev, jobId: e.jobId, percent: e.percent }
+      })
     })
     const unsubSegment = window.scrubber.transcribe.onSegment((e) => {
-      const s = stateRef.current
-      if (s.kind !== 'transcribing') return
-      if (s.jobId === null || s.jobId === e.jobId) {
-        setState({
-          ...s,
+      // Функциональный setState: несколько сегментов могут прийти в одном тике —
+      // читаем актуальный prev, чтобы не терять накопленное (stale-closure guard).
+      setState((prev) => {
+        if (prev.kind !== 'transcribing') return prev
+        if (prev.jobId !== null && prev.jobId !== e.jobId) return prev
+        return {
+          ...prev,
           jobId: e.jobId,
-          segments: [...s.segments, { startMs: e.startMs, text: e.text }]
-        })
-      }
+          segments: [...prev.segments, { startMs: e.startMs, text: e.text }]
+        }
+      })
     })
     return () => {
       unsubProgress()
@@ -146,6 +163,7 @@ export default function Transcribe(): React.JSX.Element {
         model = prefsRes.data.selectedModel
         setSelectedModel(prefsRes.data.selectedModel)
         setSelectedLanguage(prefsRes.data.selectedLanguage)
+        setTimecodesEnabled(prefsRes.data.timecodesEnabled)
       }
       if (listRes.ok && listRes.data) {
         const row = listRes.data.find((m) => m.name === model)
@@ -177,13 +195,20 @@ export default function Transcribe(): React.JSX.Element {
       language: selectedLanguage
     })
     if (r.ok && r.data) {
-      setState({ kind: 'transcript-done', mdPath: r.data.mdPath, text: r.data.text })
+      setState({
+        kind: 'transcript-done',
+        mdPath: r.data.mdPath,
+        text: r.data.text,
+        segments: r.data.segments
+      })
       return
     }
     const reason = (!r.ok ? (r.reason as TranscribeReason) : 'internal') ?? 'internal'
     if (reason === 'cancelled') {
-      setCancelledMsg(true)
-      setState({ kind: 'idle' })
+      // D-13: не сбрасываем в idle — предлагаем сохранить накопленные сегменты.
+      const s = stateRef.current
+      const partial = s.kind === 'transcribing' ? s.segments : []
+      setState({ kind: 'transcript-cancelled-partial', segments: partial })
       return
     }
     // model_missing (D-09): синхронизируем флаг доступности — кнопка заблокируется.
@@ -201,6 +226,24 @@ export default function Transcribe(): React.JSX.Element {
   async function handleRevealTranscript(): Promise<void> {
     if (state.kind !== 'transcript-done') return
     await window.scrubber.transcribe.revealInFolder(state.mdPath)
+  }
+
+  // D-05: «Сохранить как» — отправляем ТОЛЬКО md-контент, имя файла формирует main.
+  async function handleSaveAs(md: string): Promise<void> {
+    await window.scrubber.transcribe.saveAs(md)
+  }
+
+  // D-13: сохранить частичный транскрипт из накопленных сегментов (после отмены).
+  async function handleSavePartial(): Promise<void> {
+    if (state.kind !== 'transcript-cancelled-partial') return
+    const md = buildDisplayText(state.segments, timecodesEnabled)
+    await window.scrubber.transcribe.saveAs(md)
+  }
+
+  // TRANS-05: отмена идущей транскрипции (SIGTERM → reason cancelled → partial-save).
+  async function handleCancelTranscribe(): Promise<void> {
+    if (state.kind !== 'transcribing' || state.jobId === null) return
+    await window.scrubber.transcribe.cancel(state.jobId)
   }
 
   async function handlePathSelected(path: string): Promise<void> {
@@ -350,6 +393,27 @@ export default function Transcribe(): React.JSX.Element {
             onReset={resetIdle}
             copied={copied}
           />
+          <div className="flex items-center gap-2">
+            <label htmlFor="transcribe-language" className="text-sm text-gray-700">
+              Язык
+            </label>
+            <select
+              id="transcribe-language"
+              value={selectedLanguage}
+              onChange={(e): void => {
+                const lang = e.target.value
+                setSelectedLanguage(lang)
+                void window.scrubber.settings.setPreference('selectedLanguage', lang)
+              }}
+              className="text-sm rounded-md border border-gray-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {LANGUAGE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             type="button"
             disabled={modelAvailable === false}
@@ -370,18 +434,43 @@ export default function Transcribe(): React.JSX.Element {
       )}
 
       {state.kind === 'transcribing' && (
+        <TranscribeProgress
+          percent={state.percent}
+          segments={state.segments}
+          onCancel={(): void => {
+            void handleCancelTranscribe()
+          }}
+          cancelDisabled={state.jobId === null}
+        />
+      )}
+
+      {state.kind === 'transcript-cancelled-partial' && (
         <div
           role="status"
-          className="p-6 rounded-md border border-blue-200 bg-blue-50 text-blue-900"
+          className="p-6 rounded-md border border-amber-300 bg-amber-50 text-amber-900 space-y-4"
         >
-          <h2 className="text-lg font-medium mb-2">Распознаём речь…</h2>
-          <div className="w-full bg-blue-100 rounded h-2 mb-2 overflow-hidden">
-            <div
-              className="bg-blue-600 h-2 transition-all"
-              style={{ width: `${state.percent}%` }}
-            />
+          <h2 className="text-lg font-medium">Транскрипция отменена</h2>
+          <p className="text-sm">
+            Распознанная часть сохранена. Можно сохранить частичный транскрипт в файл.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={(): void => {
+                void handleSavePartial()
+              }}
+              className="px-4 py-2 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Сохранить частичное
+            </button>
+            <button
+              type="button"
+              onClick={resetIdle}
+              className="px-4 py-2 text-sm rounded-md bg-gray-200 text-gray-900 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Сбросить
+            </button>
           </div>
-          <p className="text-sm">{state.percent}%</p>
         </div>
       )}
 
@@ -389,11 +478,16 @@ export default function Transcribe(): React.JSX.Element {
         <TranscriptResult
           mdPath={state.mdPath}
           text={state.text}
+          segments={state.segments}
+          timecodesDefault={timecodesEnabled}
           onOpenFile={(): void => {
             void handleOpenTranscript()
           }}
           onRevealInFolder={(): void => {
             void handleRevealTranscript()
+          }}
+          onSaveAs={(md): void => {
+            void handleSaveAs(md)
           }}
           onReset={resetIdle}
         />

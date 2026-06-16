@@ -112,6 +112,17 @@ export class Transcriber {
   private jobs = new Map<string, JobHandle>()
   private modelsDir = ''
   private initialised = false
+  // D-05 / T-3-06: источник истины для main-tier defaultName в saveAs.
+  // audioPath последнего/текущего job — имя файла формирует MAIN, НЕ untrusted renderer.
+  private lastAudioPath: string | null = null
+
+  /**
+   * Возвращает audioPath последнего/текущего job (D-05). Используется TRANSCRIBE_SAVE_AS
+   * для формирования defaultName в main — renderer НЕ передаёт имя файла (T-3-06, warning-5).
+   */
+  getCurrentAudioPath(): string | null {
+    return this.lastAudioPath
+  }
 
   async init(): Promise<void> {
     if (this.initialised) return
@@ -138,6 +149,9 @@ export class Transcriber {
     if (!isAbsolute(audioPath)) {
       return { ok: false, reason: 'invalid_argument' }
     }
+
+    // D-05: запоминаем audioPath для main-tier defaultName в saveAs (renderer не формирует имя).
+    this.lastAudioPath = audioPath
 
     const modelPath = resolveModel(opts.model)
     // Gap 3 / D-09: модель отсутствует → reason 'model_missing' (UI отсылает в Settings).
