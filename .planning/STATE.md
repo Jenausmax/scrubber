@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-06-10T12:24:07.913Z"
-last_activity: 2026-06-10
+last_updated: "2026-06-16T11:19:04.601Z"
+last_activity: 2026-06-16
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 13
   completed_plans: 11
-  percent: 85
+  percent: 40
 ---
 
 # Project State
@@ -26,10 +26,10 @@ See: .planning/PROJECT.md (updated 2026-05-27)
 ## Current Position
 
 Phase: 03 (local-transcription-core-value) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Next: Phase 3 (local-transcription) — discuss/plan
 Status: Ready to execute
-Last activity: 2026-06-10
+Last activity: 2026-06-16
 
 Progress: [█████████░] 85%
 
@@ -57,6 +57,7 @@ Note: MEDIA-04 (extraction на Linux/macOS) перенесён в v1.1 — не
 *Updated after each plan completion*
 | Phase 03 P01 | 35min | 3 tasks | 18 files |
 | Phase 03 P02 | 12min | 3 tasks | 19 files |
+| Phase 03 P03-03 | 1.5h | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-01: requirements плана = [TRANS-03] GREEN; TRANS-01/02/04/05/06/07 законтрактованы здесь, GREEN в 03-02/03/04
 - [Phase ?]: 03-02: ядро ценности (mp4→transcript.md офлайн) подтверждено на UAT — milestone gate пройден
 - [Phase ?]: 03-02: dev-сборка .cjs-утилит чинится через predev-хук + emptyOutDir:false (root-cause Phase 2 dev-wiring gap)
+- [Phase ?]: 03-03: timecodesEnabled персистится в settings-store (D-02), НЕ в IPC-контракте transcribe.start — конфликт acceptance vs key_link разрешён в пользу контракта (renderer-side пересборка в 03-04)
 
 ### Pending Todos
 
@@ -98,6 +100,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-10T12:21:58.298Z
+Last session: 2026-06-16T11:18:57.077Z
 Stopped at: Completed 03-02-PLAN.md
 Resume file: None
