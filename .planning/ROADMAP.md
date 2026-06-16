@@ -97,7 +97,7 @@ Plans:
   4. Пользователь видит прогресс транскрипции в реальном времени, может её отменить, и UI не зависает во время длительной обработки
   5. Готовый транскрипт сохраняется в `.md`-файл, который пользователь может открыть
 
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 Plans:
 
 **Wave 1**
@@ -110,7 +110,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 03-03-PLAN.md — Управление моделями: скачивание+SHA256+отмена+удаление в Settings + model_missing-блок на Transcribe (Wave 3)
+- [x] 03-03-PLAN.md — Управление моделями: скачивание+SHA256+отмена+удаление в Settings + model_missing-блок на Transcribe (Wave 3)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -158,6 +158,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Foundation & App Shell | 4/4 | Complete   | 2026-05-30 |
 | 2. Media Extraction Pipeline | 6/6 | Complete (Windows; Linux/macOS→v1.1) | 2026-06-08 |
-| 3. Local Transcription (Core Value) | 2/4 | In Progress|  |
+| 3. Local Transcription (Core Value) | 3/4 | In Progress|  |
 | 4. LLM Analysis & Prompt Library | 0/TBD | Not started | - |
 | 5. Distribution & Cross-Platform | 0/TBD | Not started | - |
