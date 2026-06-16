@@ -14,6 +14,28 @@ import type { SecureBackend } from '../../shared/ipc'
 
 export interface SettingsSchema {
   secureBackend?: SecureBackend
+  /** Выбранная whisper-модель (D-08, дефолт 'medium'). */
+  selectedModel?: string
+  /** Выбранный язык распознавания (дефолт 'ru'). */
+  selectedLanguage?: string
+  /**
+   * Состояние UI-тумблера таймкодов (D-02, default ВЫКЛ). ВАЖНО: это НЕ поле
+   * IPC-контракта transcribe.start. Auto-save (D-01/D-04) ВСЕГДА пишет сплошной
+   * текст; тумблер применяется renderer-side в 03-04 как пересборка из сохранённых
+   * сегментов БЕЗ re-run whisper.
+   */
+  timecodesEnabled?: boolean
+}
+
+/** Дефолты несекретных настроек (D-08, D-02). */
+export const SETTINGS_DEFAULTS: {
+  selectedModel: string
+  selectedLanguage: string
+  timecodesEnabled: boolean
+} = {
+  selectedModel: 'medium',
+  selectedLanguage: 'ru',
+  timecodesEnabled: false
 }
 
 // electron-store экспортирует класс Store как default. Тип импортируем лениво —

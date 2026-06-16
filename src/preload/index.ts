@@ -30,7 +30,10 @@ const scrubber: ScrubberApi = {
     saveApiKey: (key) => ipcRenderer.invoke(Channels.SETTINGS_SAVE_API_KEY, key),
     hasApiKey: () => ipcRenderer.invoke(Channels.SETTINGS_HAS_API_KEY),
     clearApiKey: () => ipcRenderer.invoke(Channels.SETTINGS_CLEAR_API_KEY),
-    getSecureBackend: () => ipcRenderer.invoke(Channels.SETTINGS_GET_SECURE_BACKEND)
+    getSecureBackend: () => ipcRenderer.invoke(Channels.SETTINGS_GET_SECURE_BACKEND),
+    getPreferences: () => ipcRenderer.invoke(Channels.SETTINGS_GET_PREFERENCES),
+    setPreference: (key, value) =>
+      ipcRenderer.invoke(Channels.SETTINGS_SET_PREFERENCE, key, value)
   },
   // Phase 2 Plan 01 (02-CONTEXT.md D-14, D-15): namespace media.*
   // onProgress подписывается на event-канал MEDIA_PROGRESS и возвращает unsubscribe.

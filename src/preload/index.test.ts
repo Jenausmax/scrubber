@@ -44,7 +44,7 @@ describe('preload/index — contextBridge bridge', () => {
     restoreContextIsolated()
   })
 
-  it('экспонирует namespaces settings/media/transcribe/models + getPathForFile (allow-list), settings содержит 4 функции', async () => {
+  it('экспонирует namespaces settings/media/transcribe/models + getPathForFile (allow-list), settings содержит 6 функций', async () => {
     const electron = await import('electron')
     const spy = electron.contextBridge.exposeInMainWorld as ReturnType<typeof vi.fn>
     spy.mockClear()
@@ -60,8 +60,16 @@ describe('preload/index — contextBridge bridge', () => {
     expect(typeof bridge.getPathForFile).toBe('function')
 
     const settings = bridge.settings as Record<string, unknown>
+    // Phase 3 (03-03): добавлены getPreferences/setPreference (несекретные UI-настройки D-08/D-02).
     expect(Object.keys(settings).sort()).toEqual(
-      ['clearApiKey', 'getSecureBackend', 'hasApiKey', 'saveApiKey'].sort()
+      [
+        'clearApiKey',
+        'getPreferences',
+        'getSecureBackend',
+        'hasApiKey',
+        'saveApiKey',
+        'setPreference'
+      ].sort()
     )
     for (const fn of Object.values(settings)) {
       expect(typeof fn).toBe('function')

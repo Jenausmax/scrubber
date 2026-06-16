@@ -63,6 +63,33 @@ function installScrubberMock(): MediaMock {
     onSegment: vi.fn(() => (): void => {})
   }
   const scrubber: Partial<ScrubberApi> = {
+    // Phase 3 (03-03): Transcribe загружает настройки + список моделей на mount.
+    // По умолчанию выбранная модель medium СКАЧАНА → кнопка активна.
+    settings: {
+      saveApiKey: vi.fn().mockResolvedValue({ ok: true }),
+      hasApiKey: vi.fn().mockResolvedValue({ ok: true, data: false }),
+      clearApiKey: vi.fn().mockResolvedValue({ ok: true }),
+      getSecureBackend: vi.fn().mockResolvedValue({ ok: true, data: 'dpapi' }),
+      getPreferences: vi.fn().mockResolvedValue({
+        ok: true,
+        data: { selectedModel: 'medium', selectedLanguage: 'ru', timecodesEnabled: false }
+      }),
+      setPreference: vi.fn().mockResolvedValue({ ok: true })
+    },
+    models: {
+      list: vi.fn().mockResolvedValue({
+        ok: true,
+        data: [
+          { name: 'small', sizeBytes: 487_601_967, downloaded: false },
+          { name: 'medium', sizeBytes: 1_533_763_059, downloaded: true },
+          { name: 'large-v3', sizeBytes: 3_095_033_483, downloaded: false }
+        ]
+      }),
+      download: vi.fn().mockResolvedValue({ ok: true, data: { jobId: 'm1' } }),
+      cancel: vi.fn().mockResolvedValue({ ok: true }),
+      delete: vi.fn().mockResolvedValue({ ok: true }),
+      onProgress: vi.fn(() => (): void => {})
+    },
     media: {
       pickFile: media.pickFile,
       probe: media.probe,
@@ -376,5 +403,25 @@ describe('Transcribe FSM — транскрипция (03-02 ядро ценно
     await waitFor(() => {
       expect(screen.getByText(/Настройк/i)).toBeTruthy()
     })
+  })
+
+  it('выбранная модель не скачана → кнопка заблокирована + отсылка в Настройки (D-09)', async () => {
+    // medium НЕ скачана → modelAvailable=false → кнопка disabled.
+    ;(window.scrubber.models.list as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      data: [
+        { name: 'small', sizeBytes: 487_601_967, downloaded: false },
+        { name: 'medium', sizeBytes: 1_533_763_059, downloaded: false },
+        { name: 'large-v3', sizeBytes: 3_095_033_483, downloaded: false }
+      ]
+    })
+    await driveToDone(mock)
+    await waitFor(() => {
+      const btn = screen.getByRole('button', { name: 'Транскрибировать' }) as HTMLButtonElement
+      expect(btn.disabled).toBe(true)
+    })
+    expect(screen.getByText(/Настройки → Модели/i)).toBeTruthy()
+    // start не должен вызываться при заблокированной кнопке
+    expect(transcribeMock.start).not.toHaveBeenCalled()
   })
 })

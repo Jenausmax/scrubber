@@ -28,7 +28,7 @@ import ExtractDone from '../components/ExtractDone'
 import TranscriptResult from '../components/TranscriptResult'
 import InlineError from '../components/InlineError'
 
-// Дефолтная модель ядра ценности (03-02). Селектор языка/модели — слайс 03-04/03-03.
+// Дефолты на случай, если getPreferences ещё не загрузился (D-08/D-02).
 const DEFAULT_MODEL = 'medium'
 const DEFAULT_LANGUAGE = 'ru'
 
@@ -68,6 +68,11 @@ export default function Transcribe(): React.JSX.Element {
   const [state, setState] = useState<State>({ kind: 'idle' })
   const [cancelledMsg, setCancelledMsg] = useState(false)
   const [copied, setCopied] = useState(false)
+  // Несекретные настройки (D-08/D-02). selectedModel — какую модель запускать,
+  // modelAvailable — есть ли она на диске (D-09: model_missing-блок).
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL)
+  const [selectedLanguage, setSelectedLanguage] = useState(DEFAULT_LANGUAGE)
+  const [modelAvailable, setModelAvailable] = useState<boolean | null>(null)
   // Храним актуальный state в ref для onProgress-handler'а, который замыкает
   // первое значение setState через useEffect.
   const stateRef = useRef<State>(state)
@@ -125,6 +130,35 @@ export default function Transcribe(): React.JSX.Element {
     }
   }, [])
 
+  // Загрузка настроек + проверка наличия выбранной модели на диске (D-09).
+  // model_missing-блок: если модель не скачана — кнопка транскрипции заблокирована
+  // с отсылкой в Настройки → Модели.
+  useEffect(() => {
+    let cancelled = false
+    void (async (): Promise<void> => {
+      const [prefsRes, listRes] = await Promise.all([
+        window.scrubber.settings.getPreferences(),
+        window.scrubber.models.list()
+      ])
+      if (cancelled) return
+      let model = DEFAULT_MODEL
+      if (prefsRes.ok && prefsRes.data) {
+        model = prefsRes.data.selectedModel
+        setSelectedModel(prefsRes.data.selectedModel)
+        setSelectedLanguage(prefsRes.data.selectedLanguage)
+      }
+      if (listRes.ok && listRes.data) {
+        const row = listRes.data.find((m) => m.name === model)
+        setModelAvailable(row ? row.downloaded : false)
+      } else {
+        setModelAvailable(false)
+      }
+    })()
+    return (): void => {
+      cancelled = true
+    }
+  }, [])
+
   function resetIdle(): void {
     setCancelledMsg(false)
     setCopied(false)
@@ -135,9 +169,12 @@ export default function Transcribe(): React.JSX.Element {
     if (state.kind !== 'done') return
     const { audioPath } = state
     setState({ kind: 'transcribing', jobId: null, audioPath, percent: 0, segments: [] })
+    // NB: timecodesEnabled персистится в settings-store (D-02), но НЕ передаётся в
+    // transcribe.start — auto-save (D-01) всегда пишет сплошной текст; тумблер
+    // применяется renderer-side в 03-04 пересборкой из сегментов БЕЗ re-run whisper.
     const r = await window.scrubber.transcribe.start(audioPath, {
-      model: DEFAULT_MODEL,
-      language: DEFAULT_LANGUAGE
+      model: selectedModel,
+      language: selectedLanguage
     })
     if (r.ok && r.data) {
       setState({ kind: 'transcript-done', mdPath: r.data.mdPath, text: r.data.text })
@@ -148,6 +185,10 @@ export default function Transcribe(): React.JSX.Element {
       setCancelledMsg(true)
       setState({ kind: 'idle' })
       return
+    }
+    // model_missing (D-09): синхронизируем флаг доступности — кнопка заблокируется.
+    if (reason === 'model_missing') {
+      setModelAvailable(false)
     }
     setState({ kind: 'transcript-error', reason })
   }
@@ -311,13 +352,20 @@ export default function Transcribe(): React.JSX.Element {
           />
           <button
             type="button"
+            disabled={modelAvailable === false}
             onClick={(): void => {
               void handleTranscribe()
             }}
-            className="px-4 py-2 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Транскрибировать
           </button>
+          {modelAvailable === false && (
+            <p className="text-sm text-amber-700" role="alert">
+              Модель «{selectedModel}» не скачана — перейдите в Настройки → Модели,
+              чтобы загрузить её.
+            </p>
+          )}
         </div>
       )}
 

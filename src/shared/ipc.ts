@@ -37,6 +37,10 @@ export const Channels = {
   SETTINGS_HAS_API_KEY: 'settings:hasApiKey',
   SETTINGS_CLEAR_API_KEY: 'settings:clearApiKey',
   SETTINGS_GET_SECURE_BACKEND: 'settings:getSecureBackend',
+  /** settings.getPreferences() — несекретные настройки UI (selectedModel/language/timecodes, D-08/D-02). */
+  SETTINGS_GET_PREFERENCES: 'settings:getPreferences',
+  /** settings.setPreference(key,value) — записать одну несекретную настройку (D-08/D-02). */
+  SETTINGS_SET_PREFERENCE: 'settings:setPreference',
   /** media.pickFile() — открыть нативный file dialog, фильтр *.mp4 (02-CONTEXT.md D-04, D-15). */
   MEDIA_PICK_FILE: 'media:pickFile',
   /** media.probe(path) — ffprobe-метаданные mp4 до старта извлечения (02-CONTEXT.md D-14, D-15). */
@@ -76,13 +80,33 @@ export const Channels = {
 export type ChannelName = (typeof Channels)[keyof typeof Channels]
 
 /**
- * Settings namespace — единственный реально реализованный в Phase 1 (D-11).
+ * Несекретные настройки UI (D-08/D-02). Хранятся в electron-store (settings-store),
+ * НЕ в safeStorage. selectedModel/selectedLanguage/timecodesEnabled.
+ * timecodesEnabled — состояние UI-тумблера, НЕ поле IPC-контракта transcribe.start.
+ */
+export interface UserPreferences {
+  selectedModel: string
+  selectedLanguage: string
+  timecodesEnabled: boolean
+}
+
+/** Ключи UserPreferences, разрешённые к записи через settings.setPreference. */
+export type PreferenceKey = keyof UserPreferences
+
+/**
+ * Settings namespace (D-11). saveApiKey/hasApiKey/clearApiKey/getSecureBackend — Phase 1.
+ * getPreferences/setPreference — Phase 3 (несекретные UI-настройки, D-08/D-02).
  */
 export interface SettingsApi {
   saveApiKey: (key: string) => Promise<Result>
   hasApiKey: () => Promise<Result<boolean>>
   clearApiKey: () => Promise<Result>
   getSecureBackend: () => Promise<Result<SecureBackend>>
+  getPreferences: () => Promise<Result<UserPreferences>>
+  setPreference: <K extends PreferenceKey>(
+    key: K,
+    value: UserPreferences[K]
+  ) => Promise<Result>
 }
 
 /**
