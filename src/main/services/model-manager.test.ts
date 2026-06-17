@@ -50,6 +50,16 @@ function makeResponse(bytes: Uint8Array, opts?: { status?: number }): Response {
   } as unknown as Response
 }
 
+/** Построить мок 3xx-редирект-Response с заданным Location (без тела). */
+function makeRedirect(location: string, status = 302): Response {
+  return {
+    ok: false,
+    status,
+    headers: { get: (k: string) => (k.toLowerCase() === 'location' ? location : null) },
+    body: null
+  } as unknown as Response
+}
+
 const GOOD_BYTES = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])
 const GOOD_SHA = createHash('sha256').update(GOOD_BYTES).digest('hex')
 
@@ -134,6 +144,47 @@ describe('ModelManager (TRANS-02, GREEN — 03-03)', () => {
     // silero (внутренняя запись манифеста) тоже не качается напрямую
     const r2 = await mod.modelManager.download('silero')
     expect(r2.ok).toBe(false)
+  })
+
+  it('download: редирект на НЕ-allowlisted хост → download_failed, ничего не пишется (CR-01, анти-SSRF)', async () => {
+    const mod = await loadModelManager()
+    mod.MODEL_MANIFEST.silero.sha256 = GOOD_SHA
+    // 302 с huggingface.co на злой хост — должен быть отклонён ДО записи на диск.
+    const fetchMock = vi.fn(async (..._a: unknown[]) =>
+      makeRedirect('https://evil.example.com/payload.bin')
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const r = await mod.modelManager.download('small')
+    expect(r.ok).toBe(false)
+    if (r.ok) return
+    expect(r.reason).toBe('download_failed')
+    // Ни финал, ни .tmp не созданы — тело со злого хоста не запрашивалось/не писалось.
+    expect(existsSync(join(modelsDir, 'ggml-small.bin'))).toBe(false)
+    expect(existsSync(join(modelsDir, 'ggml-small.bin.tmp'))).toBe(false)
+    // Запрошен только pinned-URL манифеста; на evil-хост fetch НЕ уходил.
+    const calledUrls = fetchMock.mock.calls.map((c) => String(c[0]))
+    expect(calledUrls.every((u) => !u.includes('evil.example.com'))).toBe(true)
+  })
+
+  it('download: редирект на allowlisted CDN-хост (*.hf.co) → следуется и качается (CR-01)', async () => {
+    const mod = await loadModelManager()
+    mod.MODEL_MANIFEST.small.sha256 = GOOD_SHA
+    mod.MODEL_MANIFEST.silero.sha256 = GOOD_SHA
+    const cdnUrl = 'https://cas-bridge.xethub.hf.co/lfs/ggml-small.bin'
+    const fetchMock = vi.fn(async (...fetchArgs: unknown[]) => {
+      const url = String(fetchArgs[0])
+      if (url.includes('huggingface.co')) return makeRedirect(cdnUrl)
+      return makeResponse(GOOD_BYTES)
+    })
+    vi.stubGlobal('fetch', fetchMock as unknown as typeof fetch)
+
+    const r = await mod.modelManager.download('small')
+    expect(r.ok).toBe(true)
+    expect(existsSync(join(modelsDir, 'ggml-small.bin'))).toBe(true)
+    // Редирект на allowlisted хост был выполнен.
+    const calledUrls = fetchMock.mock.calls.map((c) => String(c[0]))
+    expect(calledUrls.some((u) => u.includes('xethub.hf.co'))).toBe(true)
   })
 
   it('download: сетевая ошибка → download_failed', async () => {

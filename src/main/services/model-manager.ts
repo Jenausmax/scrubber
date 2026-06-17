@@ -32,6 +32,26 @@ export const SELECTABLE_MODELS = ['small', 'medium', 'large-v3'] as const
 const WHISPER_BASE = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/'
 const VAD_BASE = 'https://huggingface.co/ggml-org/whisper-vad/resolve/main/'
 
+// Анти-SSRF / открытый редирект (CR-01, T-3-07): `fetch` по умолчанию следует за
+// 3xx-редиректами на ЛЮБОЙ хост, а тело пишется на диск ещё до SHA-проверки.
+// HuggingFace `resolve/main/` отвечает 302 на свой LFS-CDN. Поэтому мы:
+//   - запрашиваем с redirect:'manual';
+//   - валидируем host КАЖДОГО хопа против allowlist ПЕРЕД следующим запросом;
+//   - не-allowlisted цель → download_failed (ничего не пишем на диск).
+// silero VAD идёт через тот же fetchToFile — НЕ исключён из host-check.
+const ALLOWED_HOSTS = new Set([
+  'huggingface.co',
+  'cdn-lfs.huggingface.co',
+  'cdn-lfs-us-1.huggingface.co',
+  'cdn-lfs-eu-1.huggingface.co'
+])
+// `*.hf.co` (включая cas-bridge.xethub.hf.co — текущий LFS-CDN) разрешён суффиксом.
+function isAllowedHost(host: string): boolean {
+  return ALLOWED_HOSTS.has(host) || host === 'hf.co' || host.endsWith('.hf.co')
+}
+// Защита от петель редиректа.
+const MAX_REDIRECTS = 5
+
 export interface ModelManifestEntry {
   /** Имя файла на диске: ggml-<name>.bin. */
   file: string
@@ -137,7 +157,37 @@ class ModelManagerService {
     const tmpPath = `${targetPath}.tmp`
     let res: Response
     try {
-      res = await fetch(entry.url, { signal: controller.signal })
+      // manual-redirect loop с host-allowlist на каждом хопе (CR-01, анти-SSRF).
+      // Первый URL — из pinned-манифеста (host = huggingface.co); проверяем и его.
+      let currentUrl = entry.url
+      let hops = 0
+      for (;;) {
+        const host = new URL(currentUrl).host
+        if (!isAllowedHost(host)) {
+          // eslint-disable-next-line no-console
+          console.error(`${LOG_PREFIX} blocked non-allowlisted host: ${host} (${currentUrl})`)
+          return { ok: false, reason: 'download_failed' }
+        }
+        res = await fetch(currentUrl, { signal: controller.signal, redirect: 'manual' })
+        if (res.status >= 300 && res.status < 400) {
+          if (++hops > MAX_REDIRECTS) {
+            // eslint-disable-next-line no-console
+            console.error(`${LOG_PREFIX} too many redirects (${hops}) for ${entry.url}`)
+            return { ok: false, reason: 'download_failed' }
+          }
+          const loc = res.headers.get('location')
+          if (!loc) {
+            // eslint-disable-next-line no-console
+            console.error(`${LOG_PREFIX} redirect ${res.status} without location for ${currentUrl}`)
+            return { ok: false, reason: 'download_failed' }
+          }
+          // Резолвим относительный Location и валидируем host СЛЕДУЮЩЕГО хопа на
+          // следующей итерации (перед самим fetch) — ничего не пишем до проверки.
+          currentUrl = new URL(loc, currentUrl).toString()
+          continue
+        }
+        break
+      }
     } catch (err: unknown) {
       return { ok: false, reason: mapFetchErr(err) }
     }
