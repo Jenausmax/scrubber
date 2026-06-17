@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & App Shell** - Безопасный Electron-каркас, IPC-контракт, safeStorage, базовый UI на трёх ОС (completed 2026-05-30)
 - [x] **Phase 2: Media Extraction Pipeline** - Выбор/drag&drop mp4 и извлечение аудио через ffmpeg в упакованной сборке (completed 2026-06-08, Windows-таргет; Linux/macOS → v1.1)
-- [ ] **Phase 3: Local Transcription (Core Value)** - Офлайн mp4 → transcript.md через whisper.cpp с прогрессом и Cancel
+- [x] **Phase 3: Local Transcription (Core Value)** - Офлайн mp4 → transcript.md через whisper.cpp с прогрессом и Cancel (completed 2026-06-17)
 - [ ] **Phase 4: LLM Analysis & Prompt Library** - Конфигурируемый LLM, библиотека промптов, анализ транскрипта → analysis.md
 - [ ] **Phase 5: Distribution & Cross-Platform** - Устанавливаемые артефакты под Windows/Linux/macOS, подпись и нотаризация
 
@@ -97,7 +97,7 @@ Plans:
   4. Пользователь видит прогресс транскрипции в реальном времени, может её отменить, и UI не зависает во время длительной обработки
   5. Готовый транскрипт сохраняется в `.md`-файл, который пользователь может открыть
 
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 Plans:
 
 **Wave 1**
@@ -114,7 +114,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 03-04-PLAN.md — Live-стриминг+бар, cancel-partial, тумблер таймкодов, «Сохранить как», селектор языка + integration/packaged smoke (Wave 4)
+- [x] 03-04-PLAN.md — Live-стриминг+бар, cancel-partial, тумблер таймкодов, «Сохранить как», селектор языка + integration/packaged smoke (Wave 4)
 
 **UI hint**: yes
 
@@ -158,6 +158,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Foundation & App Shell | 4/4 | Complete   | 2026-05-30 |
 | 2. Media Extraction Pipeline | 6/6 | Complete (Windows; Linux/macOS→v1.1) | 2026-06-08 |
-| 3. Local Transcription (Core Value) | 3/4 | In Progress|  |
+| 3. Local Transcription (Core Value) | 4/4 | Complete   | 2026-06-17 |
 | 4. LLM Analysis & Prompt Library | 0/TBD | Not started | - |
 | 5. Distribution & Cross-Platform | 0/TBD | Not started | - |

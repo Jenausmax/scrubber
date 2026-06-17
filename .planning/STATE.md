@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-06-16T11:19:04.601Z"
-last_activity: 2026-06-16
+status: verifying
+stopped_at: Completed 03-04-PLAN.md (Phase 03 complete)
+last_updated: "2026-06-17T09:38:01.056Z"
+last_activity: 2026-06-17
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 13
-  completed_plans: 11
-  percent: 40
+  completed_plans: 13
+  percent: 60
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-05-27)
 Phase: 03 (local-transcription-core-value) — EXECUTING
 Plan: 4 of 4
 Next: Phase 3 (local-transcription) — discuss/plan
-Status: Ready to execute
-Last activity: 2026-06-16
+Status: Phase complete — ready for verification
+Last activity: 2026-06-17
 
-Progress: [█████████░] 85%
+Progress: [██████████] 100%
 
 Note: MEDIA-04 (extraction на Linux/macOS) перенесён в v1.1 — нет host-машин (см. 02-UAT.md, 02-VERIFICATION.md).
 
@@ -58,6 +58,7 @@ Note: MEDIA-04 (extraction на Linux/macOS) перенесён в v1.1 — не
 | Phase 03 P01 | 35min | 3 tasks | 18 files |
 | Phase 03 P02 | 12min | 3 tasks | 19 files |
 | Phase 03 P03-03 | 1.5h | 2 tasks | 14 files |
+| Phase 03 P04 | 50min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,10 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-02: ядро ценности (mp4→transcript.md офлайн) подтверждено на UAT — milestone gate пройден
 - [Phase ?]: 03-02: dev-сборка .cjs-утилит чинится через predev-хук + emptyOutDir:false (root-cause Phase 2 dev-wiring gap)
 - [Phase ?]: 03-03: timecodesEnabled персистится в settings-store (D-02), НЕ в IPC-контракте transcribe.start — конфликт acceptance vs key_link разрешён в пользу контракта (renderer-side пересборка в 03-04)
+- [Phase 03]: 03-04: saveAs defaultName формирует MAIN из transcriber.getCurrentAudioPath() (basename + '.transcript.md'); имя из renderer игнорируется (D-05, T-3-06, warning-5)
+- [Phase 03]: 03-04: тумблер таймкодов — renderer-side buildDisplayText (D-02), пересборка из сегментов БЕЗ re-run whisper
+- [Phase 03]: 03-04: cancel → state transcript-cancelled-partial (предложение сохранить частичное, D-13), не сброс в idle
+- [Phase 03]: 03-04: VAD-тюнинг не применялся — packaged UAT подтвердил качество русского без галлюцинаций на дефолтах; **Phase 03 завершена (5/5 success criteria, 4/4 плана)**
 
 ### Pending Todos
 
@@ -100,6 +105,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-16T11:18:57.077Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-06-17T09:38:01.034Z
+Stopped at: Completed 03-04-PLAN.md (Phase 03 complete)
 Resume file: None
