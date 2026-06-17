@@ -16,9 +16,9 @@
 //   - TRANSCRIBE_OPEN/REVEAL: shell только для сгенерированного нами mdPath (T-3-06).
 //   - Reason-коды строго из TranscribeReason. Никаких throw через IPC (Pitfall #7).
 
-import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { promises as fs, constants as fsc } from 'node:fs'
-import { basename, isAbsolute } from 'node:path'
+import { basename, isAbsolute, join, relative, resolve } from 'node:path'
 import {
   Channels,
   type Result,
@@ -53,6 +53,29 @@ async function validateAudioPath(
     return { ok: false, reason: 'audio_not_found' }
   }
   return { ok: true, path: arg }
+}
+
+/**
+ * Валидация пути для TRANSCRIBE_OPEN / REVEAL (CR-02, T-3-06).
+ * `isAbsolute + endsWith('.md')` НЕ защищает от `..`-сегментов — путь приходит из
+ * untrusted renderer и попадает в shell.openPath/showItemInFolder (ассоциация .md).
+ * Канонизируем через resolve() и проверяем containment внутри userData/transcripts
+ * (каталог, куда transcriber.finishTranscript реально пишет .md) через relative():
+ * вне границ (rel начинается с '..' или абсолютен) → invalid_argument.
+ */
+function validateTranscriptPath(
+  arg: unknown
+): { ok: true; path: string } | { ok: false; reason: TranscribeReason } {
+  if (typeof arg !== 'string' || !isAbsolute(arg) || !arg.endsWith('.md')) {
+    return { ok: false, reason: 'invalid_argument' }
+  }
+  const transcriptsDir = join(app.getPath('userData'), 'transcripts')
+  const real = resolve(arg)
+  const rel = relative(transcriptsDir, real)
+  if (rel.startsWith('..') || isAbsolute(rel) || !real.endsWith('.md')) {
+    return { ok: false, reason: 'invalid_argument' }
+  }
+  return { ok: true, path: real }
 }
 
 export function registerTranscribeHandlers(): void {
@@ -144,11 +167,9 @@ export function registerTranscribeHandlers(): void {
     Channels.TRANSCRIBE_OPEN,
     async (_event, ...args: unknown[]): Promise<Result> => {
       try {
-        const mdPath = args[0]
-        if (typeof mdPath !== 'string' || !isAbsolute(mdPath) || !mdPath.endsWith('.md')) {
-          return { ok: false, reason: 'invalid_argument' }
-        }
-        const errMsg = await shell.openPath(mdPath)
+        const v = validateTranscriptPath(args[0])
+        if (!v.ok) return v
+        const errMsg = await shell.openPath(v.path)
         if (errMsg) {
           // eslint-disable-next-line no-console
           console.error(`${LOG_PREFIX} openPath failed: ${errMsg}`)
@@ -168,11 +189,9 @@ export function registerTranscribeHandlers(): void {
     Channels.TRANSCRIBE_REVEAL,
     async (_event, ...args: unknown[]): Promise<Result> => {
       try {
-        const mdPath = args[0]
-        if (typeof mdPath !== 'string' || !isAbsolute(mdPath) || !mdPath.endsWith('.md')) {
-          return { ok: false, reason: 'invalid_argument' }
-        }
-        shell.showItemInFolder(mdPath)
+        const v = validateTranscriptPath(args[0])
+        if (!v.ok) return v
+        shell.showItemInFolder(v.path)
         return { ok: true }
       } catch (err: unknown) {
         // eslint-disable-next-line no-console
