@@ -41,7 +41,15 @@ findings:
   warning: 9
   info: 6
   total: 17
-status: issues_found
+findings_resolved:
+  critical: 2
+  warning: 0
+  info: 0
+critical_resolved:
+  - CR-01  # fixed in d6c33db — redirect:'manual' + host allowlist
+  - CR-02  # fixed in cc1c1de — path containment in userData/transcripts
+status: critical_resolved
+remaining_open: 15  # 9 warning + 6 info
 ---
 
 # Phase 3: Code Review Report
@@ -49,7 +57,7 @@ status: issues_found
 **Reviewed:** 2026-06-17T09:50:00Z
 **Depth:** standard
 **Files Reviewed:** 32
-**Status:** issues_found
+**Status:** critical_resolved (2 Critical fixed; 9 Warning + 6 Info remain open)
 
 ## Summary
 
@@ -62,6 +70,8 @@ status: issues_found
 ## Critical Issues
 
 ### CR-01: fetch следует за редиректами — SSRF/открытый редирект мимо MODEL_MANIFEST
+
+**Status:** RESOLVED (commit d6c33db) — `fetch(..., { redirect: 'manual' })` + host-allowlist (`huggingface.co` + `*.hf.co`/cdn-lfs), валидация host КАЖДОГО хопа ПЕРЕД следующим запросом, не-allowlisted цель → `download_failed` (ничего не пишется); silero идёт через тот же gated-путь; SHA256-before-rename сохранён. Тесты: reject evil-host + follow allowlisted CDN.
 
 **File:** `src/main/services/model-manager.ts:148` (`fetchToFile` → `fetch(entry.url, { signal })`)
 **Issue:** URL берётся из pinned-манифеста (это правильно), но `fetch` по умолчанию следует за HTTP 3xx-редиректами (`redirect: 'follow'`). HuggingFace `resolve/main/` как раз отвечает 302-редиректом на CDN (`cdn-lfs.huggingface.co` или подменяемый прокси/MITM при компрометации DNS). Тело ответа стримится и пишется на диск (`out.write`) ДО любой проверки источника. SHA256 ловит несовпадение контента, но:
@@ -83,6 +93,8 @@ if (res.status >= 300 && res.status < 400) {
 Минимум — задокументировать и проверять `new URL(res.url).protocol === 'https:'` и host ∈ allowlist после завершения.
 
 ### CR-02: TRANSCRIBE_OPEN / REVEAL — отсутствует нормализация пути, обход проверки через `..`
+
+**Status:** RESOLVED (commit cc1c1de) — `validateTranscriptPath`: `path.resolve()` + `path.relative()`-containment в `userData/transcripts` (реальный каталог записи из `finishTranscript`); `..`/out-of-bounds → `invalid_argument`; `.md`-проверка сохранена. Тесты: `..`-traversal reject + легитимный in-bounds путь accept для OPEN и REVEAL.
 
 **File:** `src/main/ipc/transcribe.ts:150-153` (OPEN) и `src/main/ipc/transcribe.ts:172-175` (REVEAL)
 **Issue:** Валидация — `isAbsolute(mdPath) && mdPath.endsWith('.md')`. Контракт заявляет «shell только для сгенерированного нами mdPath (T-3-06)», но фактически путь приходит из renderer (untrusted) и НЕ ограничен каталогом `userData/transcripts`. Строка вида `C:\Users\victim\AppData\...\transcripts\..\..\..\Windows\System32\evil.md` проходит обе проверки (она абсолютна и кончается на `.md`), после чего `shell.openPath` отдаёт её ОС на исполнение через ассоциацию расширения. Это позволяет скомпрометированному/багнутому renderer открыть произвольный путь оболочкой. Расширение `.md` не гарантирует безопасности: на многих системах `.md` ассоциирован с редактором, но `endsWith` не защищает от `..`-сегментов внутри пути и от symlink.
